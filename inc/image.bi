@@ -1,8 +1,85 @@
 #include once "fbgfx.bi"
-#include once "loadPNG.bi"
 #include once "crt.bi"
 
 #define TRANSPARENT rgba(0, 0, 0, 0)
+
+#ifndef loadTGA
+  '' Loads a TGA image info a Fb.Image buffer.
+  '' Currently this only loads 32-bit *uncompressed* TGA files.		
+  function loadTGA( aPath as const string ) as Fb.Image ptr
+    '' TGA file format header
+    type __TGAHeader__ field = 1
+      as ubyte _
+        idLength, _
+        colorMapType, _
+        dataTypeCode
+      as short _
+        colorMapOrigin, _
+        colorMapLength
+      as ubyte _
+        colorMapDepth
+      as short _
+        x_origin, _
+        y_origin, _
+        width, _
+        height
+      as ubyte _
+        bitsPerPixel, _
+        imageDescriptor
+    end type
+    
+    dim as long fileHandle = freeFile()
+    
+    dim as Fb.Image ptr image
+    
+    '' Open file
+    dim as integer result = open( aPath for binary access read as fileHandle )
+    
+    if( result = 0 ) then
+      '' Retrieve header
+      dim as __TGAHeader__ h
+      
+      get #fileHandle, , h
+      
+      if( h.dataTypeCode = 2 andAlso h.bitsPerPixel = 32 ) then
+        '' Create the image
+        image = imageCreate( h.width, h.height, rgba( 0, 0, 0, 0 ) )
+        
+        '' Pointer to pixel data				
+        dim as ulong ptr pix = cptr( ulong ptr, image ) + sizeof( Fb.Image ) \ sizeof( ulong )
+        
+        '' Get size of padding, as FB aligns the width of its images
+        '' to the paragraph (16 bytes) boundary.
+        dim as integer padd = image->pitch \ sizeof( ulong )
+        
+        '' Allocate temporary buffer to hold pixel data
+        dim as ulong ptr buffer = allocate( ( h.width * h.height ) * sizeof( ulong ) )
+        
+        '' Read pixel data from file
+        get #fileHandle, , *buffer, h.width * h.height
+        
+        close( fileHandle )
+        
+        '' Load pixel data onto image
+        for y as integer = 0 to h.height - 1
+          for x as integer = 0 to h.width - 1
+            dim as integer yy = iif( h.y_origin = 0, ( h.height - 1 ) - y, y )
+            
+            pix[ yy * padd + x ] = buffer[ y * h.width + x ]
+          next
+        next
+        
+        deallocate( buffer )
+      else
+        ? "Unknown file format!"
+      end if
+    else
+      ? "Error opening file!"
+    end if
+    
+    return( image )
+  end function
+#endif
 
 function image_pixels(img as Fb.Image ptr) as ulong ptr
   return cast(ulong ptr, cast(ubyte ptr, img) + sizeof(Fb.Image))
@@ -82,7 +159,7 @@ end function
 
 '' Loads an image, resized to the specified size
 function image_load overload(fileName as string, w as long, h as long) as Fb.Image ptr
-  var tile = loadPNG(fileName)
+  var tile = loadTGA(fileName)
   dim as Fb.Image ptr result
   
   if (tile) then
@@ -95,7 +172,7 @@ end function
 
 '' Loads an image, original size
 function image_load overload(fileName as string) as Fb.Image ptr
-  var tile = loadPNG(fileName)
+  var tile = loadTGA(fileName)
   
   return tile
 end function

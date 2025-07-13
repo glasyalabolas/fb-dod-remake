@@ -5,7 +5,7 @@ sub paint_wall(room as MapRoom ptr, x as long, y as long)
     if (not FLAG_ISSET(room->tile(x, y).flags, TILE_DOOR) andAlso not FLAG_ISSET(room->tile(x, y + 1).flags, TILE_DOOR)) then
       with room->tile(x, y)
         .back = tileInfo->topWallTile
-        FLAG_SET(.flags, TILE_IMPASSABLE or TILE_BLOCKS_LIGHT)
+        FLAG_SET(.flags, TILE_IMPASSABLE)
       end with
       
       with room->tile(x, y + 1)
@@ -159,3 +159,20 @@ sub room_remove_entity(room as MapRoom ptr, e as GEntity ptr)
   list_removeItem(@(room->entities), e)
   e->room = 0
 end sub
+
+'' Returns whether or not a room has any entity in the specified location
+function room_has_entity(room as MapRoom ptr, x as long, y as long) as boolean
+  var n = room->entities.first
+  
+  do while (n)
+    dim as GEntity ptr e = n->item
+    
+    if (e->x = x andAlso e->y = y) then
+      return true
+    end if
+    
+    n = n->forward
+  loop
+  
+  return false
+end function

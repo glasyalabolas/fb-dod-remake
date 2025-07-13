@@ -37,12 +37,26 @@ static as double Game.keySpeed = 100.0      '' Key repeat speed, in milliseconds
 #include once "inc/dod-map.bi"
 #include once "inc/dod-minimap.bi"
 #include once "inc/dod-room.bi"
+#include once "inc/dod-pathing.bi"
 #include once "inc/dod-base-hooks.bi"
 #include once "inc/dod-items.bi"
 #include once "inc/dod-player.bi"
+#include once "inc/dod-monster.bi"
 
 #include once "inc/dod-item-hooks.bi"
 #include once "inc/dod-dtors.bi"
+
+sub distance_field_render(dfield as DistanceField ptr, tileSize as long)
+  for y as integer = 0 to dfield->h - 1
+    for x as integer = 0 to dfield->w - 1  
+      dim as long x0 = x * tileSize, y0 = y * tileSize
+      dim as long x1 = x0 + tileSize - 1, y1 = y0 + tileSize - 1
+      
+      draw string (x0 + 6, y0 + 6), str(dfield->cell(x, y).distance), rgb(0, 0, 0)
+      draw string (x0 + 5, y0 + 5), str(dfield->cell(x, y).distance), rgb(255, 255, 255)
+    next
+  next
+end sub
 
 '' First level (4x4 = 16 cells)
 '' 4 Monster generators
@@ -88,25 +102,31 @@ dim as Fb.Image ptr male_sprites()
 dim as Fb.Image ptr female_sprites()
 dim as Fb.Image ptr tiles()
 dim as Fb.Image ptr items()
+dim as Fb.Image ptr monsters()
 
 dim as single scale = Game.tileViewSize / Game.tileSize
 
-sprites_get(male_sprites(), "res/player-male.png", Game.tileSize, scale)
-sprites_get(female_sprites(), "res/player-female.png", Game.tileSize, scale)
-sprites_get(tiles(), "res/tiles-2.png", Game.tileSize, scale)
-sprites_get(items(), "res/items.png", Game.tileSize, scale)
-
-init_item_defs(@items(0))
+sprites_get(male_sprites(), "res/player-male.tga", Game.tileSize, scale)
+sprites_get(female_sprites(), "res/player-female.tga", Game.tileSize, scale)
+sprites_get(tiles(), "res/tiles-2.tga", Game.tileSize, scale)
+sprites_get(items(), "res/items.tga", Game.tileSize, scale)
+sprites_get(monsters(), "res/monsters.tga", Game.tileSize, scale)
 
 mp.tileset = @tiles(0)
 mp.tileCount = ARRAY_ELEMENTS(tiles)
 
+items_init(@items(0))
+monsters_init(@monsters(0))
+
 map_init(m, @mp)
 rooms_init(m)
 
-map_add_entity(m, item_create(ITEM_HEALTH_POTION, rng(1, Game.viewWidth - 2), rng(2, Game.viewHeight - 2)), rng(0, m->w - 1), rng(0, m->h - 1))
-map_add_entity(m, item_create(ITEM_SCROLL, rng(1, Game.viewWidth - 2), rng(2, Game.viewHeight - 2)), rng(0, m->w - 1), rng(0, m->h - 1))
-map_add_entity(m, item_create(ITEM_MAP, rng(1, Game.viewWidth - 2), rng(2, Game.viewHeight - 2)), rng(0, m->w - 1), rng(0, m->h - 1))
+map_add_entity(m, item_create(ITEM_HEALTH_POTION, rng(2, Game.viewWidth - 2), rng(2, Game.viewHeight - 3)), rng(0, m->w - 1), rng(0, m->h - 1))
+map_add_entity(m, item_create(ITEM_SCROLL, rng(2, Game.viewWidth - 2), rng(2, Game.viewHeight - 3)), rng(0, m->w - 1), rng(0, m->h - 1))
+map_add_entity(m, item_create(ITEM_MAP, rng(2, Game.viewWidth - 2), rng(2, Game.viewHeight - 3)), rng(0, m->w - 1), rng(0, m->h - 1))
+
+map_add_entity(m, monster_create(MONSTER_VAMPIRE, 4, 4), 0, 0)
+map_add_entity(m, monster_create(MONSTER_CRYSTAL_SCORPION, 8, 4), 0, 0)
 
 var player = player_create(@female_sprites(0), 1, Game.viewWidth / 2, Game.viewHeight / 2)
 
@@ -147,6 +167,8 @@ do
     put(minimapPosX, minimapPosY), minimap.buffer, pset
     
     room_render(room)
+    'distance_field_render(room->distanceField, Game.tileViewSize)
+    
     '? "Cell: " & cellX & ", " & cellY
   screenUnlock()
   
@@ -160,3 +182,4 @@ sprites_destroy(male_sprites())
 sprites_destroy(female_sprites())
 sprites_destroy(tiles())
 sprites_destroy(items())
+sprites_destroy(monsters())

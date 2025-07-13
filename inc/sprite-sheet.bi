@@ -75,7 +75,7 @@ sub sprite_remove_duplicates(sprites() as Fb.Image ptr)
 end sub
 
 sub sprites_get(sprites() as Fb.Image ptr, filename as string, tileSize as long, scale as single = 1.0)
-  var sheet = loadPNG(filename)
+  var sheet = loadTGA(filename)
   
   if (sheet) then
     var scaledSheet = image_resize(sheet, sheet->width * scale, sheet->height * scale)

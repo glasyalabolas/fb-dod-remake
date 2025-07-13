@@ -2,10 +2,35 @@ sub entity_leave_tile(e as GEntity ptr)
   'debug("entity_leave_tile")
 end sub
 
-function entity_enter_tile(e as GEntity ptr, tx as long, ty as long) as boolean
-  debug("Entity " & e->name & " at " & e->x & ", " & e->y & " entering tile at " & tx & ", " & ty)
+function entity_enter_tile(e as GEntity ptr, newX as long, newY as long) as boolean
+  dim as boolean tick
   
-  return false
+  '' Check if we would collide against other entities in the room
+  var n = e->room->entities.first
+  
+  dim as boolean blocked
+  
+  do while (n)
+    dim as GEntity ptr other = n->item
+    
+    if (other->x = newX andAlso other->y = newY) then
+      if (other->onCollide) then
+        blocked = other->onCollide(other, e)
+      end if
+      exit do
+    end if
+    
+    n = n->forward
+  loop
+  
+  if (not blocked) then
+    e->x = newX
+    e->y = newY
+  end if
+    
+  tick = true
+  
+  return tick
 end function
 
 sub entity_leave_room(e as GEntity ptr)
@@ -27,7 +52,10 @@ function entity_move(e as GEntity ptr, dx as long, dy as long) as boolean
   
   if (room_inside(e->room, newX, e->y)) then
     if (FLAG_ISSET(e->room->tile(newX, e->y).flags, TILE_IMPASSABLE)) then
-      e->onWallBump(e, @(e->room->tile(newX, e->y)))
+      if (e->onWallBump) then
+        e->onWallBump(e, @(e->room->tile(newX, e->y)))
+      end if
+      
       newX = e->x
       bumped = true
     end if
@@ -35,7 +63,10 @@ function entity_move(e as GEntity ptr, dx as long, dy as long) as boolean
   
   if (room_inside(e->room, e->x, newY)) then
     if (FLAG_ISSET(e->room->tile(e->x, newY).flags, TILE_IMPASSABLE)) then
-      e->onWallBump(e, @(e->room->tile(e->x, newY)))
+      if (e->onWallBump) then
+        e->onWallBump(e, @(e->room->tile(e->x, newY)))
+      end if
+      
       newY = e->y
       bumped = true
     end if
@@ -45,7 +76,10 @@ function entity_move(e as GEntity ptr, dx as long, dy as long) as boolean
   '' need to do this check for diagonals; otherwise we get diagonal penetration
   if (not bumped andAlso room_inside(e->room, newX, newY)) then
     if (FLAG_ISSET(e->room->tile(newX, newY).flags, TILE_IMPASSABLE)) then
-      e->onWallBump(e, @(e->room->tile(newX, newY)))
+      if (e->onWallBump) then
+        e->onWallBump(e, @(e->room->tile(newX, newY)))
+      end if
+      
       newX = e->x
       newY = e->y
     end if
@@ -84,17 +118,26 @@ function entity_move(e as GEntity ptr, dx as long, dy as long) as boolean
     end if
     
     if (newRoom) then
-      'TODO: Check if the entity would bump against another on the next room and cancel movement if appropriate
-      if (e->onLeaveRoom) then
-        e->onLeaveRoom(e)
-      end if
-      
-      if (e->onEnterRoom) then
-        e->onEnterRoom(e, newRoom)
+      '' Check if the entity would bump against another on the new room and cancel movement if appropriate
+      if (room_has_entity(newRoom, newX, newY)) then
+        debug("Bumped against an entity in the new room!")
+        
+        newX = e->x
+        newY = e->y
+      else
+        if (e->onLeaveRoom) then
+          e->onLeaveRoom(e)
+        end if
+        
+        if (e->onEnterRoom) then
+          e->onEnterRoom(e, newRoom)
+        end if
       end if
     end if
-    
-    if (e->onEnterTile) then
+  end if
+  
+  if (e->onEnterTile) then
+    if (newX <> e->x orElse newY <> e->y) then
       tick = e->onEnterTile(e, newX, newY)
     end if
   end if

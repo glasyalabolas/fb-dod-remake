@@ -34,8 +34,15 @@ sub player_render(e as GEntity ptr)
 end sub
 
 sub player_init(e as GEntity ptr)
+  debug("player_init")
+  
   e->player->lastPress = timer()
   FLAG_SET(e->room->cell->flags, CELL_VISITED)
+  
+'  if (e->room->distanceField = 0) then
+'    debug("  flowfield_create")
+'    e->room->distanceField = distance_field_create(e->room)
+'  end if
 end sub
 
 function player_process(e as GEntity ptr) as boolean
@@ -97,42 +104,65 @@ sub player_wall_bump(e as GEntity ptr, tile as MapTile ptr)
   debug("Bumped a wall at: " & tile->x & ", " & tile->y)
 end sub
 
+'function player_enter_tile(e as GEntity ptr, newX as long, newY as long) as boolean
+'  dim as boolean tick
+  
+'  '' Check if we would collide against other entities
+'  var n = e->room->entities.first
+  
+'  dim as boolean blocked
+  
+'  do while (n)
+'    dim as GEntity ptr other = n->item
+    
+'    if (other->x = newX andAlso other->y = newY) then
+'      if (other->onCollide) then
+'        blocked = other->onCollide(other, e)
+'      end if
+'      exit do
+'    end if
+    
+'    n = n->forward
+'  loop
+  
+'  if (not blocked) then
+'    e->x = newX
+'    e->y = newY
+    
+'    tick = true
+'  end if
+  
+'  return tick
+'end function
+
+sub player_enter_room(e as GEntity ptr, newRoom as MapRoom ptr)
+  entity_enter_room(e, newRoom)
+  FLAG_SET(e->room->cell->flags, CELL_VISITED)
+  
+'  if (newRoom->distanceField = 0) then
+'    newRoom->distanceField = distance_field_create(newRoom)
+'  end if
+end sub
+
+function player_collide(e as GEntity ptr, who as GEntity ptr) as boolean
+  if (who->gtype = ENTITY_MONSTER) then
+    debug("Holy shit I'm being attacked!")
+    return true
+  end if
+  
+  return false
+end function
+
 function player_enter_tile(e as GEntity ptr, newX as long, newY as long) as boolean
-  dim as boolean tick
+  dim as boolean tick = entity_enter_tile(e, newX, newY)
   
-  '' Check if we would collide against other entities
-  var n = e->room->entities.first
-  
-  dim as boolean blocked
-  
-  do while (n)
-    dim as GEntity ptr other = n->item
-    
-    if (other->x = newX andAlso other->y = newY) then
-      if (other->onCollide) then
-        blocked = other->onCollide(other, e)
-      end if
-      exit do
-    end if
-    
-    n = n->forward
-  loop
-  
-  if (not blocked) then
-    e->x = newX
-    e->y = newY
-    
-    tick = true
+  if (tick) then
+    debug("player_enter_tile")
+    'distance_field_compute(e->room->distanceField, e->room, e->x, e->y)
   end if
   
   return tick
 end function
-
-sub player_enter_room(e as GEntity ptr, newRoom as MapRoom ptr)
-  debug("player_enter_room")
-  room_add_entity(newRoom, e)
-  FLAG_SET(e->room->cell->flags, CELL_VISITED)
-end sub
 
 function player_create(tiles as Fb.Image ptr ptr, tileId as long, x as long, y as long) as GEntity ptr
   var e = new GEntity
@@ -158,6 +188,7 @@ function player_create(tiles as Fb.Image ptr ptr, tileId as long, x as long, y a
   e->onEnterTile = @player_enter_tile
   e->onLeaveRoom = @entity_leave_room
   e->onEnterRoom = @player_enter_room
+  e->onCollide = @player_collide
   
   return e
 end function

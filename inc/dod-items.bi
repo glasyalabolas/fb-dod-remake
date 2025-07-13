@@ -7,6 +7,8 @@ enum ITEM_TYPE
   ITEM_ARMOR
   ITEM_SHIELD
   ITEM_COIN
+  
+  ITEM_LAST
 end enum
 
 type GItem
@@ -44,6 +46,7 @@ end sub
 '' Should be called after the item applied its effects to remove it from the
 '' map and dispose of it
 sub item_dispose(e as GEntity ptr)
+  '' Remove it from the minimap display if it's there
   if (e->room->cell->entity = e) then
     e->room->cell->entity = 0
   end if
@@ -71,8 +74,8 @@ declare sub health_potion_pickup(as GEntity ptr, as GEntity ptr)
 declare sub scroll_pickup(as GEntity ptr, as GEntity ptr)
 declare sub map_pickup(as GEntity ptr, as GEntity ptr)
 
-sub init_item_defs(tileset as Fb.Image ptr ptr)
-  redim GItem.ITEM_DEF(ITEM_MAP to ITEM_COIN)
+sub items_init(tileset as Fb.Image ptr ptr)
+  redim GItem.ITEM_DEF(0 to ITEM_LAST - 1)
   GItem.tileset = tileset
   
   with GItem.ITEM_DEF(ITEM_MAP)

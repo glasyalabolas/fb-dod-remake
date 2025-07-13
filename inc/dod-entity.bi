@@ -1,6 +1,7 @@
 type as GEntity GEntity_
 type as GItem GItem_
 type as GPlayer GPlayer_
+type as GMonster GMonster_
 type as Minimap Minimap_
 type as MapRoom MapRoom_
 type as MapTile MapTile_
@@ -26,7 +27,7 @@ type as function(as GEntity_ ptr, as GEntity_ ptr) as boolean entity_collide_fun
 
 enum ENTITY_TYPE
   ENTITY_PLAYER
-  ENTITY_ENEMY
+  ENTITY_MONSTER
   ENTITY_GENERATOR
   ENTITY_ITEM
   ENTITY_TRAP
@@ -45,6 +46,9 @@ type GEntity
     end type
     type
       as GPlayer_ ptr player
+    end type
+    type
+      as GMonster_ ptr monster
     end type
   end union
   
