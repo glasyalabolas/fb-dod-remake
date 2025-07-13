@@ -1,4 +1,3 @@
 * text eol=crlf
-*.png binary
-*.a binary
 *.tga binary
+*.dll binary
