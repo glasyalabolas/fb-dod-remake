@@ -106,11 +106,11 @@ dim as Fb.Image ptr monsters()
 
 dim as single scale = Game.tileViewSize / Game.tileSize
 
-sprites_get(male_sprites(), "res/player-male.tga", Game.tileSize, scale)
-sprites_get(female_sprites(), "res/player-female.tga", Game.tileSize, scale)
-sprites_get(tiles(), "res/tiles-2.tga", Game.tileSize, scale)
-sprites_get(items(), "res/items.tga", Game.tileSize, scale)
-sprites_get(monsters(), "res/monsters.tga", Game.tileSize, scale)
+sprites_get(male_sprites(), "res/player-male.bmp", Game.tileSize, scale)
+sprites_get(female_sprites(), "res/player-female.bmp", Game.tileSize, scale)
+sprites_get(tiles(), "res/tiles-2.bmp", Game.tileSize, scale)
+sprites_get(items(), "res/items.bmp", Game.tileSize, scale)
+sprites_get(monsters(), "res/monsters.bmp", Game.tileSize, scale)
 
 mp.tileset = @tiles(0)
 mp.tileCount = ARRAY_ELEMENTS(tiles)

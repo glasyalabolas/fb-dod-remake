@@ -1,83 +1,55 @@
 #include once "fbgfx.bi"
 #include once "crt.bi"
+#include once "file.bi"
 
 #define TRANSPARENT rgba(0, 0, 0, 0)
 
-#ifndef loadTGA
-  '' Loads a TGA image info a Fb.Image buffer.
-  '' Currently this only loads 32-bit *uncompressed* TGA files.		
-  function loadTGA( aPath as const string ) as Fb.Image ptr
-    '' TGA file format header
-    type __TGAHeader__ field = 1
-      as ubyte _
-        idLength, _
-        colorMapType, _
-        dataTypeCode
-      as short _
-        colorMapOrigin, _
-        colorMapLength
-      as ubyte _
-        colorMapDepth
-      as short _
-        x_origin, _
-        y_origin, _
-        width, _
-        height
-      as ubyte _
-        bitsPerPixel, _
-        imageDescriptor
+#ifndef loadBMP
+  function loadBMP(path as const string) as Fb.Image ptr
+    #define __BM_WINDOWS__ &h4D42
+    
+    type __BITMAPFILEHEADER__ field = 1
+      as ushort id
+      as ulong size
+      as ubyte reserved(0 to 3)
+      as ulong offset
     end type
     
-    dim as long fileHandle = freeFile()
+    type __BITMAPINFOHEADER__ field = 1
+      as ulong size
+      as long width
+      as long height
+      as ushort planes
+      as ushort bpp
+      as ulong compression_method
+      as ulong image_size
+      as ulong h_res
+      as ulong v_res
+      as ulong color_palette_num
+      as ulong colors_used
+    end type
     
-    dim as Fb.Image ptr image
+    dim as any ptr img = 0
     
-    '' Open file
-    dim as integer result = open( aPath for binary access read as fileHandle )
-    
-    if( result = 0 ) then
-      '' Retrieve header
-      dim as __TGAHeader__ h
+    if (fileExists(path)) then
+      dim as __BITMAPFILEHEADER__ header 
+      dim as __BITMAPINFOHEADER__ info
       
-      get #fileHandle, , h
+      dim as long f = freeFile()
       
-      if( h.dataTypeCode = 2 andAlso h.bitsPerPixel = 32 ) then
-        '' Create the image
-        image = imageCreate( h.width, h.height, rgba( 0, 0, 0, 0 ) )
-        
-        '' Pointer to pixel data				
-        dim as ulong ptr pix = cptr( ulong ptr, image ) + sizeof( Fb.Image ) \ sizeof( ulong )
-        
-        '' Get size of padding, as FB aligns the width of its images
-        '' to the paragraph (16 bytes) boundary.
-        dim as integer padd = image->pitch \ sizeof( ulong )
-        
-        '' Allocate temporary buffer to hold pixel data
-        dim as ulong ptr buffer = allocate( ( h.width * h.height ) * sizeof( ulong ) )
-        
-        '' Read pixel data from file
-        get #fileHandle, , *buffer, h.width * h.height
-        
-        close( fileHandle )
-        
-        '' Load pixel data onto image
-        for y as integer = 0 to h.height - 1
-          for x as integer = 0 to h.width - 1
-            dim as integer yy = iif( h.y_origin = 0, ( h.height - 1 ) - y, y )
-            
-            pix[ yy * padd + x ] = buffer[ y * h.width + x ]
-          next
-        next
-        
-        deallocate( buffer )
-      else
-        ? "Unknown file format!"
+      open path for binary as f
+        get #f, , header
+        get #f, sizeof( header ) + 1, info
+      close(f)
+      
+      '' Check if the file is indeed a Windows bitmap
+      if (header.id = __BM_WINDOWS__) then
+        img = imageCreate(info.width, abs(info.height))
+        bload(path, img)
       end if
-    else
-      ? "Error opening file!"
     end if
     
-    return( image )
+    return img
   end function
 #endif
 
@@ -159,7 +131,7 @@ end function
 
 '' Loads an image, resized to the specified size
 function image_load overload(fileName as string, w as long, h as long) as Fb.Image ptr
-  var tile = loadTGA(fileName)
+  var tile = loadBMP(fileName)
   dim as Fb.Image ptr result
   
   if (tile) then
@@ -172,7 +144,7 @@ end function
 
 '' Loads an image, original size
 function image_load overload(fileName as string) as Fb.Image ptr
-  var tile = loadTGA(fileName)
+  var tile = loadBMP(fileName)
   
   return tile
 end function
