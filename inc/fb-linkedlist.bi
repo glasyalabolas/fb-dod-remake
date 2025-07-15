@@ -38,6 +38,7 @@ namespace Fb
       declare function addAfter( as LinkedListNode ptr, as any ptr ) as LinkedListNode ptr
       declare function addFirst( as any ptr ) as LinkedListNode ptr
       declare function addLast( as any ptr ) as LinkedListNode ptr
+      declare function add(as any ptr) as LinkedListNode ptr
       declare function remove( as LinkedListNode ptr ) as any ptr
       declare function removeAt(index as integer) as any ptr
       declare function removeFirst() as any ptr
@@ -166,6 +167,10 @@ namespace Fb
   
   function LinkedList.addLast( item as any ptr ) as LinkedListNode ptr
     return( iif( _last = FBNULL, addFirst( item ), addAfter( _last, item ) ) )
+  end function
+  
+  function LinkedList.add(item as any ptr) as LinkedListNode ptr
+    return addLast(item)
   end function
   
   function LinkedList.remove( node as LinkedListNode ptr ) as any ptr

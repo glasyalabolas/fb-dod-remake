@@ -28,7 +28,7 @@ static as long Game.tileSize = 32           '' Tile size on the sprite sheet
 static as long Game.tileViewSize = 48       '' Tile size on the view
 static as long Game.viewWidth = 17          '' Number of horizontal tiles on view
 static as long Game.viewHeight = 19         '' Number of vertical tiles on view
-static as long Game.statusPanelSize = 300   '' Size of the side bar that displays status
+static as long Game.statusPanelSize = 400   '' Size of the side bar that displays status
 static as long Game.statusPanelMargin = 10  '' Margin of the elements on the side bar
 static as double Game.keySpeed = 100.0      '' Key repeat speed, in milliseconds
 

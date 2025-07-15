@@ -1,5 +1,11 @@
 #include once "fb-linkedlist.bi"
 
+#ifndef rng
+  function rng(aMin as long, aMax as long) as long
+    return int(rnd() * ((aMax + 1) - aMin) + aMin)
+  end function
+#endif
+
 function list_copy(l as Fb.LinkedList ptr) as Fb.LinkedList ptr
   var list = new Fb.LinkedList()
   
@@ -48,3 +54,12 @@ function list_removeItem(l as Fb.LinkedList ptr, item as any ptr) as boolean
   
   return false
 end function
+
+sub list_add(l as Fb.LinkedList ptr, another as Fb.LinkedList ptr)
+  var n = another->first
+  
+  do while (n)
+    l->addLast(n->item)
+    n = n->forward
+  loop
+end sub

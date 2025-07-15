@@ -115,6 +115,8 @@ end sub
 #endif
 
 #ifndef SetDPIAwareness
+  '' SetDPIAwareness() by Johannes "Jattenalle" Pihl
+  '' http://www.jattegames.com/
   sub SetDPIAwareness()
     #ifdef __FB_WIN32__
     
