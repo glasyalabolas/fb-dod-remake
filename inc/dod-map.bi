@@ -12,7 +12,6 @@ end enum
 type as MapCell MapCell_
 type as Map Map_
 type as GEntity GEntity_
-'type as DistanceField DistanceField_
 
 enum MAP_TILE_FLAGS
   TILE_NONE
@@ -33,7 +32,6 @@ type MapRoom
   as MapTile tile(any, any)
   as MapCell_ ptr cell
   as Map_ ptr map
-  'as DistanceField_ ptr distanceField
   
   as Fb.LinkedList entities
 end type
@@ -317,21 +315,6 @@ end sub
 sub map_remove_entity(m as Map ptr, e as GEntity ptr)
   list_removeItem(@m->entities, e)
 end sub
-
-'sub map_init_entities(m as Map ptr)
-'  var n = m->entities.first
-  
-'  do while (n)
-'    dim as GEntity ptr e = n->item
-    
-'    if (e->onInit) then
-'      e->onInit(e)
-'    end if
-    
-'    n = n->forward
-'  loop
-'end sub
-'declare sub distance_field_compute(as DistanceField_ ptr, as MapRoom ptr, as long, as long)
 
 sub map_tick(m as Map ptr)
   m->ticks += 1

@@ -183,9 +183,6 @@ do
     messagebox_render(Game._messageBox, messageBoxPosX, messageBoxPosY)
     
     room_render(room)
-    'distance_field_render(room->distanceField, Game.tileViewSize)
-    
-    '? "Cell: " & cellX & ", " & cellY
   screenUnlock()
   
   sleep(1, 1)
