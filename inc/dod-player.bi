@@ -146,7 +146,7 @@ end sub
 
 function player_collide(e as GEntity ptr, who as GEntity ptr) as boolean
   if (who->gtype = ENTITY_MONSTER) then
-    debug("Holy shit I'm being attacked!")
+    game_message("Holy shit I'm being attacked!", MSG_COLOR_DAMAGE)
     return true
   end if
   

@@ -1,5 +1,4 @@
 '' General purpose utilities
-#include once "inc/sprite-sheet.bi"
 #include once "inc/utils.bi"
 #include once "inc/rng.bi"
 #include once "inc/math.bi"
@@ -7,8 +6,18 @@
 #include once "inc/list-op.bi"
 #include once "inc/fb-mouse-gm.bi"
 #include once "inc/fb-keyboard-mk.bi"
+#include once "inc/sprite-sheet.bi"
+
+'' Game specific code
+#include once "inc/dod-font.bi"
+#include once "inc/dod-messagebox.bi"
 
 '' Global settings
+const as ulong MSG_COLOR_DAMAGE = rgb(231, 76, 60)
+const as ulong MSG_COLOR_HIT = rgb(230, 126, 34)
+const as ulong MSG_COLOR_GOOD = rgb(52, 152, 219)
+const as ulong MSG_COLOR_BAD = rgb(22, 160, 133)
+
 type Game extends Object
   static as Fb.KeyboardInput keyboard
   static as Fb.MouseInput mouse
@@ -20,6 +29,7 @@ type Game extends Object
   static as long statusPanelMargin
   
   static as double keySpeed
+  static as GMessageBox ptr _messageBox
 end type
 
 static as Fb.KeyboardInput Game.keyboard = Fb.KeyboardInput()
@@ -31,8 +41,21 @@ static as long Game.viewHeight = 19         '' Number of vertical tiles on view
 static as long Game.statusPanelSize = 400   '' Size of the side bar that displays status
 static as long Game.statusPanelMargin = 10  '' Margin of the elements on the side bar
 static as double Game.keySpeed = 100.0      '' Key repeat speed, in milliseconds
+static as GMessageBox ptr Game._messageBox  '' Message box for all game messages
 
-'' Game specific code
+sub game_init()
+  Game._messageBox = messagebox_create(10, Game.statusPanelSize - Game.statusPanelMargin * 2)
+  messagebox_set_font(Game._messageBox, font_load("res/game.fnt"))
+end sub
+
+sub game_deinit()
+  messagebox_destroy(Game._messageBox)
+end sub
+
+sub game_message(text as string, clr as ulong = rgb(255, 255, 255))
+  message(Game._messageBox, text, clr)
+end sub
+
 #include once "inc/dod-entity.bi"
 #include once "inc/dod-map.bi"
 #include once "inc/dod-minimap.bi"
@@ -45,18 +68,6 @@ static as double Game.keySpeed = 100.0      '' Key repeat speed, in milliseconds
 
 #include once "inc/dod-item-hooks.bi"
 #include once "inc/dod-dtors.bi"
-
-sub distance_field_render(dfield as DistanceField ptr, tileSize as long)
-  for y as integer = 0 to dfield->h - 1
-    for x as integer = 0 to dfield->w - 1  
-      dim as long x0 = x * tileSize, y0 = y * tileSize
-      dim as long x1 = x0 + tileSize - 1, y1 = y0 + tileSize - 1
-      
-      draw string (x0 + 6, y0 + 6), str(dfield->cell(x, y).distance), rgb(0, 0, 0)
-      draw string (x0 + 5, y0 + 5), str(dfield->cell(x, y).distance), rgb(255, 255, 255)
-    next
-  next
-end sub
 
 '' First level (4x4 = 16 cells)
 '' 4 Monster generators
@@ -72,6 +83,8 @@ screenRes( _
   Game.viewWidth * Game.tileViewSize + Game.statusPanelSize, Game.viewHeight * Game.tileViewSize, 32, , Fb.GFX_ALPHA_PRIMITIVES)
 
 randomize()
+
+game_init()
 
 '' Create map
 dim as MapParams mp
@@ -134,6 +147,8 @@ map_add_entity(m, player, 0, 0)
 
 dim as long minimapPosX = Game.viewWidth * Game.tileViewSize + Game.statusPanelMargin
 dim as long minimapPosY = Game.statusPanelMargin
+dim as long messageBoxPosX = minimapPosX
+dim as long messageBoxPosY = Game.viewHeight * Game.tileViewSize - Game._messageBox->maxRows * Game._messageBox->font->h - Game.statusPanelMargin
 
 dim as long mx, my
 dim as MapRoom ptr room = player->room
@@ -165,6 +180,7 @@ do
   screenLock()
     cls()
     put(minimapPosX, minimapPosY), minimap.buffer, pset
+    messagebox_render(Game._messageBox, messageBoxPosX, messageBoxPosY)
     
     room_render(room)
     'distance_field_render(room->distanceField, Game.tileViewSize)
@@ -183,3 +199,5 @@ sprites_destroy(female_sprites())
 sprites_destroy(tiles())
 sprites_destroy(items())
 sprites_destroy(monsters())
+
+game_deinit()

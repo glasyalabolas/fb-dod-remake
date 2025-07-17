@@ -82,7 +82,7 @@ end sub
 function monster_collide(e as GEntity ptr, who as GEntity ptr) as boolean
   select case as const (who->gtype)
     case ENTITY_PLAYER
-      debug("Player is attacking me!")
+      game_message("Player is attacking me!", MSG_COLOR_HIT)
       return true
     
     case ENTITY_MONSTER
