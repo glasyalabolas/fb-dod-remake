@@ -25,7 +25,8 @@ end enum
 
 type MapTile
   as long x, y
-  as long back, front
+  as long back, backVariation
+  as long front
   as MAP_TILE_FLAGS flags
   as MapCell_ ptr cell
 end type

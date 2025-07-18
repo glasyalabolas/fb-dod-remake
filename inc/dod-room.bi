@@ -20,10 +20,12 @@ end sub
 
 sub paint_floor(room as MapRoom ptr, x as long, y as long)
   var tileInfo = @(room->cell->map->tileInfo)
+  var tileset = room->cell->map->_tileset
   
   if (room_inside(room, x, y)) then
     with room->tile(x, y)
       .back = tileInfo->_floorTile
+      .backVariation = rng(0, ubound(tileset->floors(tileInfo->_floorTile).tile))
       .flags = 0
       FLAG_SET(.flags, TILE_FLOOR)
     end with
@@ -118,23 +120,23 @@ sub room_render(room as MapRoom ptr)
       dim as long x0 = x * tileSize, y0 = y * tileSize
       dim as long x1 = x0 + tileSize - 1, y1 = y0 + tileSize - 1
       
-      'put(x * tileSize, y * tileSize), m->tileset[room->tile(x, y).back], pset
-      
-      if (FLAG_ISSET(room->tile(x, y).flags, TILE_FLOOR)) then
-        put(x * tileSize, y * tileSize), m->_tileset->floors(room->tile(x, y).back).tile(0), pset
-      end if
-      
-      if (FLAG_ISSET(room->tile(x, y).flags, TILE_WALL_TOP)) then
-        put(x * tileSize, y * tileSize), m->_tileset->wallTops(room->tile(x, y).back).tile(0), pset
-      end if
-      
-      if (FLAG_ISSET(room->tile(x, y).flags, TILE_WALL)) then
-        put(x * tileSize, y * tileSize), m->_tileset->walls(room->tile(x, y).back).tile(0), pset
-      end if
-      
-      if (FLAG_ISSET(room->tile(x, y).flags, TILE_IMPASSABLE)) then
-        'line(x0, y0) - (x1, y1), rgb(255, 0, 0), b
-      end if
+      with room->tile(x, y)
+        if (FLAG_ISSET(.flags, TILE_FLOOR)) then
+          put(x * tileSize, y * tileSize), m->_tileset->floors(.back).tile(.backVariation), pset
+        end if
+        
+        if (FLAG_ISSET(.flags, TILE_WALL_TOP)) then
+          put(x * tileSize, y * tileSize), m->_tileset->wallTops(.back).tile(.backVariation), pset
+        end if
+        
+        if (FLAG_ISSET(.flags, TILE_WALL)) then
+          put(x * tileSize, y * tileSize), m->_tileset->walls(.back).tile(.backVariation), pset
+        end if
+        
+        if (FLAG_ISSET(room->tile(x, y).flags, TILE_IMPASSABLE)) then
+          'line(x0, y0) - (x1, y1), rgb(255, 0, 0), b
+        end if
+      end with
     next
   next
   
