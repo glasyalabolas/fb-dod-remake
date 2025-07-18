@@ -1,16 +1,19 @@
 sub paint_wall(room as MapRoom ptr, x as long, y as long)
   var tileInfo = @(room->cell->map->tileInfo)
+  var tileset = room->cell->map->_tileset
   
   if (room_inside(room, x, y) andAlso room_inside(room, x, y + 1)) then
     if (not FLAG_ISSET(room->tile(x, y).flags, TILE_DOOR) andAlso not FLAG_ISSET(room->tile(x, y + 1).flags, TILE_DOOR)) then
       with room->tile(x, y)
         .back = tileInfo->_topWallTile
+        .backVariation = rng(0, ubound(tileset->wallTops(tileInfo->_topWallTile).tile))
         FLAG_SET(.flags, TILE_IMPASSABLE or TILE_WALL_TOP)
         FLAG_CLEAR(.flags, TILE_FLOOR or TILE_WALL)
       end with
       
       with room->tile(x, y + 1)
         .back = tileInfo->_bottomWallTile
+        .backVariation = rng(0, ubound(tileset->walls(tileInfo->_bottomWallTile).tile))
         FLAG_SET(.flags, TILE_IMPASSABLE or TILE_WALL)
         FLAG_CLEAR(.flags, TILE_FLOOR or TILE_WALL_TOP)
       end with

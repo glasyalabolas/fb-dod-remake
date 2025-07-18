@@ -210,9 +210,9 @@ do
     
     room_render(room)
     
-    if (tileX <> -1 andAlso tileY <> -1) then
-      ? room->tile(tileX, tileY).back
-    end if
+'    if (tileX <> -1 andAlso tileY <> -1) then
+'      ? room->tile(tileX, tileY).back
+'    end if
   screenUnlock()
   
   sleep(1, 1)
