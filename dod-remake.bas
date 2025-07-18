@@ -56,6 +56,7 @@ sub game_message(text as string, clr as ulong = rgb(255, 255, 255))
   message(Game._messageBox, text, clr)
 end sub
 
+#include once "inc/dod-tileset.bi"
 #include once "inc/dod-entity.bi"
 #include once "inc/dod-map.bi"
 #include once "inc/dod-minimap.bi"
@@ -119,6 +120,21 @@ dim as Fb.Image ptr monsters()
 
 dim as single scale = Game.tileViewSize / Game.tileSize
 
+'' Load tileset
+dim as Tileset tileset
+
+tileset_get_tiles(tileset.floors(), "res/floor/", "floor-*.bmp", Game.tileSize, scale)
+tileset_get_tiles(tileset.walls(), "res/wall/", "wall-*.bmp", Game.tileSize, scale)
+tileset_get_tiles(tileset.wallTops(), "res/wall-top/", "walltop-*.bmp", Game.tileSize, scale)
+
+'for i as integer = 0 to ubound(tileset.floors)
+'  for j as integer = 0 to ubound(tileset.floors(i).tile)
+'    put(j * tileset.floors(i).tile(j)->width, i * tileset.floors(i).tile(j)->height), tileset.floors(i).tile(j), alpha
+'  next
+'next
+
+'sleep()
+
 sprites_get(male_sprites(), "res/player-male.bmp", Game.tileSize, scale)
 sprites_get(female_sprites(), "res/player-female.bmp", Game.tileSize, scale)
 sprites_get(tiles(), "res/tiles-2.bmp", Game.tileSize, scale)
@@ -127,6 +143,7 @@ sprites_get(monsters(), "res/monsters.bmp", Game.tileSize, scale)
 
 mp.tileset = @tiles(0)
 mp.tileCount = ARRAY_ELEMENTS(tiles)
+mp._tileset = @tileset
 
 items_init(@items(0))
 monsters_init(@monsters(0))
@@ -160,6 +177,7 @@ do
   Game.mouse.move(mx, my)
   
   dim as long cellX = -1, cellY = -1
+  dim as long tileX = -1, tileY = -1
   
   if (mx >= minimapPosX andAlso mx <= minimapPosX + minimap.buffer->width - 1) then
     cellX = (mx - minimapPosX) \ minimap.cellSize
@@ -167,6 +185,14 @@ do
   
   if (my >= minimapPosY andAlso my <= minimapPosY + minimap.buffer->height - 1) then
     cellY = (my - minimapPosY) \ minimap.cellSize
+  end if
+  
+  if (mx >= 0 andAlso mx <= Game.viewWidth * Game.tileViewSize - 1) then
+    tileX = mx \ Game.tileViewSize
+  end if
+  
+  if (my >= 0 andAlso my <= Game.viewHeight * Game.tileViewSize - 1) then
+    tileY = mY \ Game.tileViewSize
   end if
   
   if (map_inside(m, cellX, cellY)) then
@@ -183,6 +209,10 @@ do
     messagebox_render(Game._messageBox, messageBoxPosX, messageBoxPosY)
     
     room_render(room)
+    
+    if (tileX <> -1 andAlso tileY <> -1) then
+      ? room->tile(tileX, tileY).back
+    end if
   screenUnlock()
   
   sleep(1, 1)
@@ -196,5 +226,7 @@ sprites_destroy(female_sprites())
 sprites_destroy(tiles())
 sprites_destroy(items())
 sprites_destroy(monsters())
+
+tileset_destroy(@tileset)
 
 game_deinit()

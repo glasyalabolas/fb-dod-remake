@@ -34,6 +34,16 @@
   redim preserve _a_(0 to ubound(_a_) - 1)
 #endmacro
 
+'' Get the files in the specified folder that match pattern 
+sub get_files(files() as string, folder as string, pattern as string)
+  dim as string filename = dir(folder & pattern)
+  
+  do while (len(filename))
+    ARRAY_ADD(files, filename)
+    filename = dir()
+  loop
+end sub
+
 '' Macros to deal with flags
 #define FLAG_SET(_c_, _f_) _c_ or= (_f_)
 #define FLAG_CLEAR(_c_, _f_) _c_ = _c_ and not (_f_)

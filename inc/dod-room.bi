@@ -4,13 +4,15 @@ sub paint_wall(room as MapRoom ptr, x as long, y as long)
   if (room_inside(room, x, y) andAlso room_inside(room, x, y + 1)) then
     if (not FLAG_ISSET(room->tile(x, y).flags, TILE_DOOR) andAlso not FLAG_ISSET(room->tile(x, y + 1).flags, TILE_DOOR)) then
       with room->tile(x, y)
-        .back = tileInfo->topWallTile
-        FLAG_SET(.flags, TILE_IMPASSABLE)
+        .back = tileInfo->_topWallTile
+        FLAG_SET(.flags, TILE_IMPASSABLE or TILE_WALL_TOP)
+        FLAG_CLEAR(.flags, TILE_FLOOR or TILE_WALL)
       end with
       
       with room->tile(x, y + 1)
-        .back = tileInfo->bottomWallTile
-        FLAG_SET(.flags, TILE_IMPASSABLE)
+        .back = tileInfo->_bottomWallTile
+        FLAG_SET(.flags, TILE_IMPASSABLE or TILE_WALL)
+        FLAG_CLEAR(.flags, TILE_FLOOR or TILE_WALL_TOP)
       end with
     end if
   end if
@@ -21,8 +23,9 @@ sub paint_floor(room as MapRoom ptr, x as long, y as long)
   
   if (room_inside(room, x, y)) then
     with room->tile(x, y)
-      .back = tileInfo->floorTile
+      .back = tileInfo->_floorTile
       .flags = 0
+      FLAG_SET(.flags, TILE_FLOOR)
     end with
   end if
 end sub
@@ -32,8 +35,9 @@ sub paint_door(room as MapRoom ptr, x as long, y as long)
   
   if (room_inside(room, x, y)) then
     with room->tile(x, y)
-      .back = tileInfo->floorTile
+      .back = tileInfo->_floorTile
       FLAG_SET(.flags, TILE_DOOR)
+      FLAG_CLEAR(.flags, TILE_WALL or TILE_WALL_TOP)
     end with
   end if
 end sub
@@ -114,7 +118,19 @@ sub room_render(room as MapRoom ptr)
       dim as long x0 = x * tileSize, y0 = y * tileSize
       dim as long x1 = x0 + tileSize - 1, y1 = y0 + tileSize - 1
       
-      put(x * tileSize, y * tileSize), m->tileset[room->tile(x, y).back], pset
+      'put(x * tileSize, y * tileSize), m->tileset[room->tile(x, y).back], pset
+      
+      if (FLAG_ISSET(room->tile(x, y).flags, TILE_FLOOR)) then
+        put(x * tileSize, y * tileSize), m->_tileset->floors(room->tile(x, y).back).tile(0), pset
+      end if
+      
+      if (FLAG_ISSET(room->tile(x, y).flags, TILE_WALL_TOP)) then
+        put(x * tileSize, y * tileSize), m->_tileset->wallTops(room->tile(x, y).back).tile(0), pset
+      end if
+      
+      if (FLAG_ISSET(room->tile(x, y).flags, TILE_WALL)) then
+        put(x * tileSize, y * tileSize), m->_tileset->walls(room->tile(x, y).back).tile(0), pset
+      end if
       
       if (FLAG_ISSET(room->tile(x, y).flags, TILE_IMPASSABLE)) then
         'line(x0, y0) - (x1, y1), rgb(255, 0, 0), b

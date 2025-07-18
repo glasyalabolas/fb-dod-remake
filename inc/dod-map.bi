@@ -18,6 +18,9 @@ enum MAP_TILE_FLAGS
   TILE_IMPASSABLE     = 1 shl 0
   TILE_DOOR           = 1 shl 1
   TILE_UNSPRUNG_TRAP  = 1 shl 3
+  TILE_FLOOR          = 1 shl 4
+  TILE_WALL_TOP       = 1 shl 5
+  TILE_WALL           = 1 shl 6
 end enum
 
 type MapTile
@@ -50,12 +53,9 @@ type MapCell
 end type
 
 type TilesetInfo
-  as long topWallTile
-  as long bottomWallTile
-  as long topDoorTile
-  as long bottomDoorTile
-  as long carpetTile
-  as long floorTile
+  as long _floorTile
+  as long _topWallTile
+  as long _bottomWallTile
   
   as long ptr tileSize
 end type
@@ -68,6 +68,7 @@ type Map
   as double tickInterval
   
   as Fb.LinkedList entities
+  as Tileset ptr _tileset
   
   static as TilesetInfo tileInfo
   static as Fb.Image ptr ptr tileset
@@ -82,6 +83,8 @@ type MapParams
   as long ptr viewWidth
   as long ptr viewHeight
   as long ptr tileSize
+  
+  as Tileset ptr _tileset
   
   as Fb.Image ptr ptr tileset
   as long tileCount
@@ -164,6 +167,8 @@ sub map_init(m as Map ptr, params as MapParams ptr)
       rooms->addLast(@m->cell(x, y))
     next
   next
+  
+  m->_tileset = params->_tileset
   
   '' Create a random floor layout
   list_shuffle(rooms)
@@ -259,25 +264,11 @@ sub map_init(m as Map ptr, params as MapParams ptr)
   '' Pick the tileset at random
   m->tileset = params->tileset
   
-  dim as long tiles(0 to params->tileCount - 1)
-  
-  for i as integer = 0 to params->tileCount - 1
-    tiles(i) = i
-  next
-  
-  for i as integer = params->tileCount - 1 to 1 step -1
-    dim as long j = rng(0, i)
-    
-    swap tiles(i), tiles(j)
-  next
-  
   with m->tileInfo
-    .topWallTile = tiles(0)
-    .bottomWallTile = tiles(1)
-    .topDoorTile = tiles(2)
-    .bottomDoorTile = tiles(3)
-    .carpetTile = tiles(4)
-    .floorTile = tiles(5)
+    ._floorTile = rng(0, ubound(m->_tileset->floors))
+    ._bottomWallTile = rng(0, ubound(m->_tileset->walls))
+    ._topWallTile = rng(0, ubound(m->_tileset->wallTops))
+    
     .tileSize = params->tileSize
   end with
 end sub
