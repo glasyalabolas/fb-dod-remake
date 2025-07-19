@@ -69,6 +69,9 @@ end sub
 #include once "inc/dod-monster.bi"
 
 #include once "inc/dod-item-hooks.bi"
+#include once "inc/dod-monster-hooks.bi"
+#include once "inc/dod-player-hooks.bi"
+
 #include once "inc/dod-dtors.bi"
 
 sub distance_field_render(df as DistanceField ptr, ts as long)

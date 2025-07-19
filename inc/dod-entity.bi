@@ -16,6 +16,7 @@ type as sub(as GEntity_ ptr) entity_leave_tile_func
 type as sub(as GEntity_ ptr) entity_leave_room_func
 type as sub(as GEntity_ ptr, as MapRoom_ ptr) entity_enter_room_func
 type as sub(as GEntity_ ptr, as GEntity_ ptr) entity_pickup_func
+type as sub(as GEntity_ ptr, as GEntity_ ptr) entity_defend_func
 
 '' These functions return true if they generate a tick
 type as function(as GEntity_ ptr, as long, as long) as boolean entity_enter_tile_func
@@ -33,10 +34,16 @@ enum ENTITY_TYPE
   ENTITY_TRAP
 end enum
 
+enum ENTITY_FLAGS
+  EFLAG_NONE
+  EFLAG_BLOCKS_MOVEMENT = 1 shl 0
+end enum
+
 type GEntity
   as string name
   as long x, y
   as ENTITY_TYPE gtype
+  as ENTITY_FLAGS flags
   as MapRoom_ ptr room
   
   union
@@ -66,6 +73,7 @@ type GEntity
   as entity_leave_room_func onLeaveRoom
   as entity_collide_func onCollide
   as entity_pickup_func onPickup
+  as entity_defend_func onDefend
 end type
 
 sub entity_destroy(e as GEntity ptr)

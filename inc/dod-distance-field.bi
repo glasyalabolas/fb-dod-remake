@@ -33,7 +33,7 @@ sub distance_field_reset(df as DistanceField ptr, entities as Fb.LinkedList ptr)
   do while (n)
     dim as GEntity ptr entity = n->item
     
-    if (entity->gtype <> ENTITY_PLAYER) then
+    if (FLAG_ISSET(entity->flags, EFLAG_BLOCKS_MOVEMENT)) then
       FLAG_SET(df->cell(entity->x, entity->y).flags, DF_ENTITY)
     end if
     
