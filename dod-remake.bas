@@ -60,6 +60,7 @@ end sub
 #include once "inc/dod-entity.bi"
 #include once "inc/dod-map.bi"
 #include once "inc/dod-minimap.bi"
+#include once "inc/dod-distance-field.bi"
 #include once "inc/dod-room.bi"
 #include once "inc/dod-pathing.bi"
 #include once "inc/dod-base-hooks.bi"
@@ -69,6 +70,30 @@ end sub
 
 #include once "inc/dod-item-hooks.bi"
 #include once "inc/dod-dtors.bi"
+
+sub distance_field_render(df as DistanceField ptr, ts as long)
+  for y as integer = 0 to df->h - 1
+    for x as integer = 0 to df->w - 1
+      dim as long x0 = x * ts, y0 = y * ts
+      dim as long x1 = x0 + ts - 1, y1 = y0 + ts - 1
+      
+      dim as ulong clr = rgb(0, 0, 0)
+      
+      if (df->cell(x, y).flags and DF_IMPASSABLE) then
+        clr = rgb(255, 0, 0)
+      end if
+      
+      if (df->cell(x, y).flags and DF_ENTITY) then
+        clr = rgb(0, 255, 255)
+      end if
+      
+      line(x0, y0) - (x1, y1), clr, b
+      
+'      draw string(x0 + 5, y0 + 5), str(df->cell(x, y).cost), rgb(0, 0, 0)
+'      draw string(x0 + 4, y0 + 4), str(df->cell(x, y).cost), rgb(0, 192, 192)
+    next
+  next
+end sub
 
 '' First level (4x4 = 16 cells)
 '' 4 Monster generators
@@ -157,6 +182,13 @@ map_add_entity(m, item_create(ITEM_MAP, rng(2, Game.viewWidth - 2), rng(2, Game.
 
 map_add_entity(m, monster_create(MONSTER_VAMPIRE, 4, 4), 0, 0)
 map_add_entity(m, monster_create(MONSTER_CRYSTAL_SCORPION, 8, 4), 0, 0)
+map_add_entity(m, monster_create(MONSTER_BLACK_ANT, 4, 8), 0, 0)
+map_add_entity(m, monster_create(MONSTER_NINJA, 8, 8), 0, 0)
+
+map_add_entity(m, monster_create(MONSTER_VAMPIRE, 5, 4), 0, 0)
+map_add_entity(m, monster_create(MONSTER_CRYSTAL_SCORPION, 9, 4), 0, 0)
+map_add_entity(m, monster_create(MONSTER_BLACK_ANT, 3, 8), 0, 0)
+map_add_entity(m, monster_create(MONSTER_NINJA, 9, 8), 0, 0)
 
 var player = player_create(@female_sprites(0), 1, Game.viewWidth / 2, Game.viewHeight / 2)
 
@@ -209,6 +241,8 @@ do
     messagebox_render(Game._messageBox, messageBoxPosX, messageBoxPosY)
     
     room_render(room)
+    
+    'distance_field_render(room->distanceField, Game.tileViewSize)
     
 '    if (tileX <> -1 andAlso tileY <> -1) then
 '      ? room->tile(tileX, tileY).back

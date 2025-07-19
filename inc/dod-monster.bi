@@ -57,26 +57,63 @@ sub monsters_init(tileset as Fb.Image ptr ptr)
   end with
 end sub
 
+function monster_move_random(e as GEntity ptr) as XY
+  return type <XY>(rngn(), rngn())
+end function
+
+function monster_move_path(e as GEntity ptr) as XY
+  var df = e->room->distanceField
+  
+  dim as DistanceFieldCell ptr cell = @df->cell(e->x, e->y)
+  
+  for y as integer = -1 to 1
+    for x as integer = -1 to 1
+        dim as long cx = e->x + x, cy = e->y + y
+        
+        if (distance_field_inside(df, cx, cy)) then
+          if (not FLAG_ISSET(df->cell(cx, cy).flags, DF_ENTITY) andAlso _
+              not FLAG_ISSET(df->cell(cx, cy).flags, DF_IMPASSABLE)) then
+            
+            if (df->cell(cx, cy).cost < cell->cost) then
+              cell = @df->cell(cx, cy)
+            end if
+          end if
+        end if
+    next
+  next
+  
+  '' Move entity towards target
+  if (cell->x <> e->x orElse cell->y <> e->y) then
+    return type <XY>(cell->x - e->x, cell->y - e->y)
+  end if
+  
+  '' Entity did not move because there was no path
+  return type <XY>(0, 0)
+end function
+
 sub monster_tick(e as GEntity ptr)
   '' Is player in the room?
   dim as GEntity ptr target = e->room->entities.first->item
-  dim as long dx, dy
+  dim as XY delta
   
   if (target->gtype = ENTITY_PLAYER) then
-    '' If it is, set it as target and move towards it
-    e->monster->target = target
+    '' If player is in the room, chase it...
+    delta = monster_move_path(e)
     
-    dx = sgn(e->monster->target->x - e->x)
-    dy = sgn(e->monster->target->y - e->y)
+    '' ...unless there's no path, then flail around waiting for your turn
+    if (delta.x = 0 andAlso delta.y = 0) then
+      delta = monster_move_random(e)
+    end if
   else
     '' Otherwise, just wander around
-    dx = rngn()
-    dy = rngn()
+    delta = monster_move_random(e)
   end if
   
-  entity_move(e, dx, dy)
+  FLAG_CLEAR(e->room->distanceField->cell(e->x, e->y).flags, DF_ENTITY)
+
+  entity_move(e, delta.x, delta.y)
   
-  debug("Monster is at: " & e->x & ", " & e->y)
+  FLAG_SET(e->room->distanceField->cell(e->x, e->y).flags, DF_ENTITY)
 end sub
 
 function monster_collide(e as GEntity ptr, who as GEntity ptr) as boolean

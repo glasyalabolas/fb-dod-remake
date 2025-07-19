@@ -11,12 +11,18 @@ sub paint_wall(room as MapRoom ptr, x as long, y as long)
         FLAG_CLEAR(.flags, TILE_FLOOR or TILE_WALL)
       end with
       
+      room->distanceField->cell(x, y).flags = 0
+      FLAG_SET(room->distanceField->cell(x, y).flags, DF_IMPASSABLE)
+      
       with room->tile(x, y + 1)
         .back = tileInfo->_bottomWallTile
         .backVariation = rng(0, ubound(tileset->walls(tileInfo->_bottomWallTile).tile))
         FLAG_SET(.flags, TILE_IMPASSABLE or TILE_WALL)
         FLAG_CLEAR(.flags, TILE_FLOOR or TILE_WALL_TOP)
       end with
+      
+      room->distanceField->cell(x, y + 1).flags = 0
+      FLAG_SET(room->distanceField->cell(x, y + 1).flags, DF_IMPASSABLE)
     end if
   end if
 end sub
@@ -49,6 +55,8 @@ end sub
 
 sub room_create(room as MapRoom ptr)
   var tileInfo = @(room->cell->map->tileInfo)
+  
+  room->distanceField = distance_field_create(room->w, room->h)
   
   '' Paint floor
   for y as integer = 0 to room->h - 1
@@ -162,7 +170,7 @@ sub room_add_entity(room as MapRoom ptr, e as GEntity ptr)
     case ENTITY_PLAYER
       room->entities.addFirst(e)
       
-    case ENTITY_ITEM
+    case ENTITY_MONSTER
       if (room->entities.count = 0) then
         room->entities.addLast(e)
       else
@@ -197,3 +205,7 @@ function room_has_entity(room as MapRoom ptr, x as long, y as long) as boolean
   
   return false
 end function
+
+sub room_destroy(room as MapRoom ptr)
+  delete(room->distanceField)
+end sub

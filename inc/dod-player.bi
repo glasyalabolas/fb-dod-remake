@@ -36,6 +36,9 @@ end sub
 sub player_init(e as GEntity ptr)
   debug("player_init")
   
+  distance_field_reset(e->room->distanceField, @(e->room->entities))
+  distance_field_compute(e->room->distanceField, @(e->room->entities), e->x, e->y)
+  
   e->player->lastPress = timer()
   FLAG_SET(e->room->cell->flags, CELL_VISITED)
 end sub
@@ -123,6 +126,11 @@ function player_enter_tile(e as GEntity ptr, newX as long, newY as long) as bool
   return tick
 end function
 
+sub player_tick(e as GEntity ptr)
+  distance_field_reset(e->room->distanceField, @(e->room->entities))
+  distance_field_compute(e->room->distanceField, @(e->room->entities), e->x, e->y)
+end sub
+
 function player_create(tiles as Fb.Image ptr ptr, tileId as long, x as long, y as long) as GEntity ptr
   var e = new GEntity
   var player = new GPlayer
@@ -139,6 +147,7 @@ function player_create(tiles as Fb.Image ptr ptr, tileId as long, x as long, y a
   e->onInit = @player_init
   e->onDestroy = @player_destroy
   e->onProcess = @player_process
+  e->onTick = @player_tick
   e->onMove = @entity_move
   e->onRender = @player_render
   e->onMinimapRender = @player_minimap_render

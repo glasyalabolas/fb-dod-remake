@@ -1,5 +1,5 @@
 sub entity_leave_tile(e as GEntity ptr)
-  'debug("entity_leave_tile")
+
 end sub
 
 function entity_enter_tile(e as GEntity ptr, newX as long, newY as long) as boolean
@@ -17,6 +17,7 @@ function entity_enter_tile(e as GEntity ptr, newX as long, newY as long) as bool
       if (other->onCollide) then
         blocked = other->onCollide(other, e)
       end if
+      
       exit do
     end if
     
@@ -34,12 +35,10 @@ function entity_enter_tile(e as GEntity ptr, newX as long, newY as long) as bool
 end function
 
 sub entity_leave_room(e as GEntity ptr)
-  debug("entity_leave_room")
   room_remove_entity(e->room, e)
 end sub
 
 sub entity_enter_room(e as GEntity ptr, newRoom as MapRoom ptr)
-  debug("entity_enter_room")
   room_add_entity(newRoom, e)
 end sub
 

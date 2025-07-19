@@ -8,5 +8,11 @@ sub map_destroy(m as Map ptr)
     n = n->forward
   loop
   
+  for y as integer = 0 to m->h - 1
+    for x as integer = 0 to m->w - 1
+      room_destroy(@(m->cell(x, y).room))
+    next
+  next
+  
   delete(m)
 end sub

@@ -12,6 +12,7 @@ end enum
 type as MapCell MapCell_
 type as Map Map_
 type as GEntity GEntity_
+type as DistanceField DistanceField_
 
 enum MAP_TILE_FLAGS
   TILE_NONE
@@ -36,6 +37,7 @@ type MapRoom
   as MapTile tile(any, any)
   as MapCell_ ptr cell
   as Map_ ptr map
+  as DistanceField_ ptr distanceField
   
   as Fb.LinkedList entities
 end type
@@ -312,8 +314,6 @@ sub map_tick(m as Map ptr)
   m->ticks += 1
   
   var n = m->entities.first
-  
-  dim as GEntity ptr player = n->item
   
   do while (n)
     dim as GEntity ptr e = n->item
