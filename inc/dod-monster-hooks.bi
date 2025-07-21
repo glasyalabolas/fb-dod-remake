@@ -5,7 +5,7 @@ end sub
 sub monster_render(e as GEntity ptr)
   dim as long tileSize = *(e->room->cell->map->tileInfo.tileSize)
   
-  put(e->x * tileSize, e->y * tileSize), e->monster->tileset[e->monster->tileId], alpha
+  put(e->x * tileSize, e->y * tileSize), e->monster->tileset[e->tileId], alpha
 end sub
 
 sub monsters_init(tileset as Fb.Image ptr ptr)
@@ -14,21 +14,41 @@ sub monsters_init(tileset as Fb.Image ptr ptr)
   
   with GMonster.MONSTER_DEF(MONSTER_VAMPIRE)
     .name = "Vampire"
+    .HP = 5
+    .maxHP = 5
+    .att = 1
+    .def = 1
+    .XP = 10
     .tileId = 0
   end with
   
   with GMonster.MONSTER_DEF(MONSTER_CRYSTAL_SCORPION)
     .name = "Crystal Scorpion"
+    .HP = 5
+    .maxHP = 5
+    .att = 1
+    .def = 1
+    .XP = 10
     .tileId = 1
   end with
   
   with GMonster.MONSTER_DEF(MONSTER_BLACK_ANT)
     .name = "Black Ant"
+    .HP = 5
+    .maxHP = 5
+    .att = 1
+    .def = 1
+    .XP = 10
     .tileId = 2
   end with
   
   with GMonster.MONSTER_DEF(MONSTER_NINJA)
     .name = "Ninja"
+    .HP = 5
+    .maxHP = 5
+    .att = 1
+    .def = 1
+    .XP = 10
     .tileId = 3
   end with
 end sub
@@ -67,12 +87,39 @@ function monster_move_path(e as GEntity ptr) as XY
   return type <XY>(0, 0)
 end function
 
-sub monster_defend(e as GEntity ptr, who as GEntity ptr)
-  game_message(e->name & " is being attacked by " & who->name, MSG_COLOR_HIT)
+'' <e> is the entity killed, <who> is whoever killed it
+sub monster_killed(e as GEntity ptr, who as GEntity ptr)
+  if (who->gtype = ENTITY_PLAYER) then
+    dim as long XPgain = e->monster->XP
+    
+    game_message(who->name & " kills " & e->name & " and gains " & XPgain & " experience", MSG_COLOR_HIT)
+    
+    who->player->XP += XPgain
+  end if
+  
+  monster_dispose(e)
 end sub
 
+'' <who> is the entity that is attacking the monster <e>
+sub monster_defend(e as GEntity ptr, who as GEntity ptr)
+  if (who->gtype = ENTITY_PLAYER) then
+    dim as long damage = who->player->swordLevel
+    
+    e->monster->HP -= damage
+    
+    game_message(who->name & " attacks " & e->name & " and does " & damage & " damage!", MSG_COLOR_HIT)
+    
+    if (e->monster->HP <= 0) then
+      monster_killed(e, who)
+    end if  
+  end if
+end sub
+
+'' <e> is the entity that <who> is attacking
 sub monster_melee(e as GEntity ptr, who as GEntity ptr)
-  game_message(who->name & " is attacking " & e->name, MSG_COLOR_DAMAGE)
+  if (e->gtype = ENTITY_PLAYER) then
+    game_message(who->name & " is attacking " & e->name, MSG_COLOR_DAMAGE)
+  end if
 end sub
 
 sub monster_tick(e as GEntity ptr)
@@ -132,12 +179,13 @@ function monster_create(what as MONSTER_TYPE, x as long, y as long) as GEntity p
   
   with GMonster.MONSTER_DEF(what)
     e->name = .name
+    e->tileId = .tileId
     
     m->HP = .HP
     m->maxHP = .maxHP
     m->att = .att
     m->def = .def
-    m->tileId = .tileId
+    m->XP = .XP
   end with
   
   e->monster = m
@@ -152,6 +200,7 @@ function monster_create(what as MONSTER_TYPE, x as long, y as long) as GEntity p
   e->onEnterRoom = @entity_enter_room
   e->onCollide = @monster_collide
   e->onDefend = @monster_defend
+  e->onKilled = @monster_killed
   
   return e
 end function

@@ -21,9 +21,17 @@ sub map_pickup(e as GEntity ptr, who as GEntity ptr)
   
   for y as integer = 0 to m->h - 1
     for x as integer = 0 to m->w - 1
-      FLAG_SET(m->cell(x, y).flags, CELL_VISITED)
+      FLAG_SET(m->cell(x, y).flags, CELL_DISPLAYED)
     next
   next
+  
+  item_dispose(e)
+end sub
+
+sub key_pickup(e as GEntity ptr, who as GEntity ptr)
+  game_message("Picked up a key", MSG_COLOR_TREASURE)
+  
+  who->player->keys += 1
   
   item_dispose(e)
 end sub

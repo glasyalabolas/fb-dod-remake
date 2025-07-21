@@ -5,9 +5,28 @@ type Minimap
   as ulong roomColor
   as ulong wallColor
   as ulong unvisitedColor
+  
+  as double blinkTime
+  as double lastBlinkTime
+  as boolean playerVisible
+  
   as Fb.Image ptr buffer
   as Map ptr map
 end type
+
+sub minimap_init(p as Minimap ptr)
+  p->lastBlinkTime = timer()
+  p->playerVisible = true
+end sub
+
+sub minimap_process(p as Minimap ptr)
+  dim as double elapsed = timer() - p->lastBlinkTime
+  
+  if (elapsed > p->blinkTime) then
+    p->playerVisible xor= true
+    p->lastBlinkTime = timer()
+  end if
+end sub
 
 sub minimap_render(p as Minimap ptr)
   var m = p->map
@@ -22,7 +41,7 @@ sub minimap_render(p as Minimap ptr)
       dim as ulong cellColor = iif(FLAG_ISSET(cell->flags, CELL_VISITED), p->roomColor, p->unvisitedColor)
       line p->buffer, (x0, y0) - (x1, y1), cellColor, bf
       
-      if (FLAG_ISSET(cell->flags, CELL_VISITED)) then
+      if (FLAG_ISSET(cell->flags, CELL_DISPLAYED or CELL_VISITED)) then
         dim as long wx0 = x0, wy0 = y0
         dim as long wx1 = x1, wy1 = y1
         
@@ -39,22 +58,22 @@ sub minimap_render(p as Minimap ptr)
         
         if (cell->north) then
           doorPos = map_getDoorPos(cell->northA, p->cellSize, doorSize)
-          line p->buffer, (x0 + doorPos, y0) - (x0 + doorPos + doorSize - 1, y0 + wallSize), p->roomColor, bf
+          line p->buffer, (x0 + doorPos, y0) - (x0 + doorPos + doorSize - 1, y0 + wallSize), cellColor, bf
         end if
         
         if (cell->south) then
           doorPos = map_getDoorPos(cell->southA, p->cellSize, doorSize)
-          line p->buffer, (x0 + doorPos, y1 - wallSize) - (x0 + doorPos + doorSize - 1, y1), p->roomColor, bf
+          line p->buffer, (x0 + doorPos, y1 - wallSize) - (x0 + doorPos + doorSize - 1, y1), cellColor, bf
         end if
         
         if (cell->west) then
           doorPos = map_getDoorPos(cell->westA, p->cellSize, doorSize)
-          line p->buffer, (x0, y0 + doorPos) - (x0 + wallSize, y0 + doorPos + doorSize - 1), p->roomColor, bf
+          line p->buffer, (x0, y0 + doorPos) - (x0 + wallSize, y0 + doorPos + doorSize - 1), cellColor, bf
         end if
         
         if (cell->east) then
           doorPos = map_getDoorPos(cell->eastA, p->cellSize, doorSize)
-          line p->buffer, (x1 - wallSize, y0 + doorPos) - (x1, y0 + doorPos + doorSize - 1), p->roomColor, bf
+          line p->buffer, (x1 - wallSize, y0 + doorPos) - (x1, y0 + doorPos + doorSize - 1), cellColor, bf
         end if
         
         var e = cell->entity

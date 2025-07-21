@@ -1,6 +1,7 @@
 enum MAP_CELL_FLAGS
   CELL_UNVISITED
   CELL_VISITED   = 1 shl 0
+  CELL_DISPLAYED = 1 shl 1
 end enum
 
 enum DOOR_ALIGNMENT
@@ -10,6 +11,7 @@ enum DOOR_ALIGNMENT
 end enum
 
 type as MapCell MapCell_
+type as MapParams MapParams_
 type as Map Map_
 type as GEntity GEntity_
 type as DistanceField DistanceField_
@@ -66,9 +68,11 @@ end type
 type Map
   as MapCell cell(any, any)
   as long w, h
+  as long level
   as ulong ticks
   as double currentTick
   as double tickInterval
+  as MapParams_ ptr params
   
   as Fb.LinkedList entities
   as Tileset ptr _tileset
@@ -86,6 +90,7 @@ type MapParams
   as long ptr viewWidth
   as long ptr viewHeight
   as long ptr tileSize
+  as double tickInterval
   
   as Tileset ptr _tileset
   
@@ -104,9 +109,11 @@ end function
 function map_create(params as MapParams ptr) as Map ptr
   var m = new Map
   
-  m->w = params->w
-  m->h = params->h
-  m->tickInterval = 1.5
+  m->params = params
+  m->level = params->level
+  m->w = params->w + (m->level / 2)
+  m->h = params->h + (m->level / 2)
+  m->tickInterval = params->tickInterval
   
   redim m->cell(0 to m->w - 1, 0 to m->h - 1)
   
@@ -277,34 +284,6 @@ sub map_init(m as Map ptr, params as MapParams ptr)
 end sub
 
 declare sub room_add_entity(as MapRoom ptr, as GEntity ptr)
-
-sub map_add_entity(m as Map ptr, e as GEntity ptr, x as long, y as long)
-  room_add_entity(@(m->cell(x, y).room), e)
-  debug("map_add_entity: " & e->name)
-  
-  select case as const (e->gtype)
-    case ENTITY_PLAYER
-      m->entities.addFirst(e)
-    
-    case ENTITY_ITEM
-      if (m->entities.count = 0) then
-        m->entities.addLast(e)
-      else
-        m->entities.addAfter(m->entities.first, e)
-      end if
-      
-      if (e->shownOnMap) then
-        m->cell(x, y).entity = e
-      end if
-      
-    case else
-      m->entities.addLast(e)
-  end select
-  
-  if (e->onInit) then
-    e->onInit(e)
-  end if
-end sub
   
 sub map_remove_entity(m as Map ptr, e as GEntity ptr)
   list_removeItem(@m->entities, e)
@@ -349,3 +328,36 @@ sub map_process(m as Map ptr)
     map_tick(m)
   end if
 end sub
+
+sub map_reveal(m as Map ptr)
+  for y as integer = 0 to m->h - 1
+    for x as integer = 0 to m->w - 1
+      FLAG_SET(m->cell(x, y).flags, CELL_DISPLAYED)
+    next
+  next
+end sub
+
+function map_cell_door_count(m as Map ptr, x as long, y as long) as long
+  dim as long count
+  
+  count += iif(m->cell(x, y).north, 1, 0)
+  count += iif(m->cell(x, y).south, 1, 0)
+  count += iif(m->cell(x, y).west, 1, 0)
+  count += iif(m->cell(x, y).east, 1, 0)
+  
+  return count
+end function
+
+function map_get_cells overload(m as Map ptr, doors as long) as Fb.LinkedList ptr
+  var cells = new Fb.LinkedList()
+  
+  for y as integer = 0 to m->h - 1
+    for x as integer = 0 to m->w - 1
+      if (map_cell_door_count(m, x, y) = doors) then
+        cells->addLast(@(m->cell(x, y)))
+      end if
+    next
+  next
+  
+  return cells
+end function

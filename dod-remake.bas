@@ -17,6 +17,7 @@ const as ulong MSG_COLOR_DAMAGE = rgb(231, 76, 60)
 const as ulong MSG_COLOR_HIT = rgb(230, 126, 34)
 const as ulong MSG_COLOR_GOOD = rgb(52, 152, 219)
 const as ulong MSG_COLOR_BAD = rgb(22, 160, 133)
+const as ulong MSG_COLOR_TREASURE = rgb(241, 196, 15)
 
 type Game extends Object
   static as Fb.KeyboardInput keyboard
@@ -74,6 +75,38 @@ end sub
 
 #include once "inc/dod-dtors.bi"
 
+sub map_add_entity(m as Map ptr, e as GEntity ptr, x as long, y as long)
+  room_add_entity(@(m->cell(x, y).room), e)
+  debug("map_add_entity: " & e->name)
+  
+  select case as const (e->gtype)
+    case ENTITY_PLAYER
+      m->entities.addFirst(e)
+    
+    case ENTITY_ITEM
+      if (m->entities.count = 0) then
+        m->entities.addLast(e)
+      else
+        m->entities.addAfter(m->entities.first, e)
+      end if
+      
+      if (e->shownOnMap) then
+        m->cell(x, y).entity = e
+      end if
+    
+    case ENTITY_MONSTER
+      e->monster->level = m->level
+      m->entities.addLast(e)
+      
+    case else
+      m->entities.addLast(e)
+  end select
+  
+  if (e->onInit) then
+    e->onInit(e)
+  end if
+end sub
+
 sub distance_field_render(df as DistanceField ptr, ts as long)
   for y as integer = 0 to df->h - 1
     for x as integer = 0 to df->w - 1
@@ -124,6 +157,7 @@ with mp
   .viewWidth = @Game.viewWidth
   .viewHeight = @Game.viewHeight
   .tileSize = @Game.tileViewSize
+  .tickInterval = 1.5
 end with
 
 var m = map_create(@mp)
@@ -138,6 +172,7 @@ with minimap
   .unvisitedColor = rgb(0, 0, 0)
   .buffer = imageCreate(m->w * .cellSize, m->h * .cellSize)
   .map = m
+  .blinkTime = 0.5
 end with
 
 dim as Fb.Image ptr male_sprites()
@@ -182,16 +217,17 @@ rooms_init(m)
 map_add_entity(m, item_create(ITEM_HEALTH_POTION, rng(2, Game.viewWidth - 2), rng(2, Game.viewHeight - 3)), rng(0, m->w - 1), rng(0, m->h - 1))
 map_add_entity(m, item_create(ITEM_SCROLL, rng(2, Game.viewWidth - 2), rng(2, Game.viewHeight - 3)), rng(0, m->w - 1), rng(0, m->h - 1))
 map_add_entity(m, item_create(ITEM_MAP, rng(2, Game.viewWidth - 2), rng(2, Game.viewHeight - 3)), rng(0, m->w - 1), rng(0, m->h - 1))
+map_add_entity(m, item_create(ITEM_KEY, rng(2, Game.viewWidth - 2), rng(2, Game.viewHeight - 3)), rng(0, m->w - 1), rng(0, m->h - 1))
 
 map_add_entity(m, monster_create(MONSTER_VAMPIRE, 4, 4), 0, 0)
-map_add_entity(m, monster_create(MONSTER_CRYSTAL_SCORPION, 8, 4), 0, 0)
-map_add_entity(m, monster_create(MONSTER_BLACK_ANT, 4, 8), 0, 0)
-map_add_entity(m, monster_create(MONSTER_NINJA, 8, 8), 0, 0)
+'map_add_entity(m, monster_create(MONSTER_CRYSTAL_SCORPION, 8, 4), 0, 0)
+'map_add_entity(m, monster_create(MONSTER_BLACK_ANT, 4, 8), 0, 0)
+'map_add_entity(m, monster_create(MONSTER_NINJA, 8, 8), 0, 0)
 
-map_add_entity(m, monster_create(MONSTER_VAMPIRE, 5, 4), 0, 0)
-map_add_entity(m, monster_create(MONSTER_CRYSTAL_SCORPION, 9, 4), 0, 0)
-map_add_entity(m, monster_create(MONSTER_BLACK_ANT, 3, 8), 0, 0)
-map_add_entity(m, monster_create(MONSTER_NINJA, 9, 8), 0, 0)
+'map_add_entity(m, monster_create(MONSTER_VAMPIRE, 5, 4), 0, 0)
+'map_add_entity(m, monster_create(MONSTER_CRYSTAL_SCORPION, 9, 4), 0, 0)
+'map_add_entity(m, monster_create(MONSTER_BLACK_ANT, 3, 8), 0, 0)
+'map_add_entity(m, monster_create(MONSTER_NINJA, 9, 8), 0, 0)
 
 var player = player_create(@female_sprites(0), 1, Game.viewWidth / 2, Game.viewHeight / 2)
 
@@ -206,9 +242,14 @@ dim as long mx, my
 dim as MapRoom ptr room = player->room
 
 m->currentTick = timer()
+minimap_init(@minimap)
+
+map_reveal(m)
 
 do
+  minimap_process(@minimap)
   map_process(m)
+  
   Game.mouse.move(mx, my)
   
   dim as long cellX = -1, cellY = -1
@@ -247,8 +288,29 @@ do
     
     'distance_field_render(room->distanceField, Game.tileViewSize)
     
+    if (cellX <> -1 andAlso cellY <> -1) then
+      ? map_cell_door_count(m, cellX, cellY)
+    end if
+    
+    var cells = map_get_cells(m, 2)
+    
+    var n = cells->first
+    
+    do while (n)
+      dim as MapCell ptr cell = n->item
+      
+      dim as long x0 = minimapPosX + cell->x * minimap.cellSize, y0 = minimapPosY + cell->y * minimap.cellSize
+      dim as long x1 = x0 + minimap.cellSize - 1, y1 = y0 + minimap.cellSize - 1
+      
+      line(x0, y0) - (x1, y1), rgb(255, 255, 0), b
+      
+      n = n->forward
+    loop
+    
+    delete(cells)
+    
 '    if (tileX <> -1 andAlso tileY <> -1) then
-'      ? room->tile(tileX, tileY).back
+'      ? room_door_count(@m->cell(tileX, tileY).room)
 '    end if
   screenUnlock()
   

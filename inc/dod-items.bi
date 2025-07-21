@@ -31,7 +31,7 @@ static as Fb.Image ptr ptr GItem.tileset
 sub item_render(e as GEntity ptr)
   dim as long tileSize = *(e->room->cell->map->tileInfo.tileSize)
   
-  put(e->x * tileSize, e->y * tileSize), e->item->tileset[e->item->tileId], alpha
+  put(e->x * tileSize, e->y * tileSize), e->item->tileset[e->tileId], alpha
 end sub
 
 sub item_minimap_render(e as GEntity ptr, p as Minimap ptr)
@@ -73,6 +73,7 @@ end function
 declare sub health_potion_pickup(as GEntity ptr, as GEntity ptr)
 declare sub scroll_pickup(as GEntity ptr, as GEntity ptr)
 declare sub map_pickup(as GEntity ptr, as GEntity ptr)
+declare sub key_pickup(as GEntity ptr, as GEntity ptr)
 
 sub items_init(tileset as Fb.Image ptr ptr)
   redim GItem.ITEM_DEF(0 to ITEM_LAST - 1)
@@ -113,6 +114,7 @@ sub items_init(tileset as Fb.Image ptr ptr)
     .gtype = ITEM_KEY
     .onMinimapRender = @item_minimap_render
     .minimap_render_color = rgb(127, 63, 31)
+    .onPickup = @key_pickup
     .tileId = 6
     .shownOnMap = true
   end with
@@ -159,6 +161,7 @@ function item_create(what as ITEM_TYPE, x as long, y as long) as GEntity ptr
   e->name = e->item->name
   e->x = x
   e->y = y
+  e->tileId = GItem.ITEM_DEF(what).tileId
   e->shownOnMap = e->item->shownOnMap
   e->onRender = @item_render
   e->onMinimapRender = e->item->onMinimapRender

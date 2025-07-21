@@ -3,20 +3,22 @@ sub player_destroy(e as GEntity ptr)
 end sub
 
 sub player_minimap_render(e as GEntity ptr, p as Minimap ptr)
-  dim as long size = p->cellSize \ 3
-  dim as long x0 = e->room->cell->x * p->cellSize + size, y0 = e->room->cell->y * p->cellSize + size
-  dim as long x1 = x0 + size - 1, y1 = y0 + size - 1
-  
-  line p->buffer, (x0, y0) - (x1, y1), rgb(255, 255, 255)
-  line p->buffer, (x0, y0 + 1) - (x1, y1 + 1), rgb(0, 0, 0)
-  line p->buffer, (x0, y1) - (x1, y0), rgb(255, 255, 255)
-  line p->buffer, (x0, y1 + 1) - (x1, y0 + 1), rgb(0, 0, 0)
+  if (p->playerVisible) then
+    dim as long size = p->cellSize \ 3
+    dim as long x0 = e->room->cell->x * p->cellSize + size, y0 = e->room->cell->y * p->cellSize + size
+    dim as long x1 = x0 + size - 1, y1 = y0 + size - 1
+    
+    line p->buffer, (x0, y0) - (x1, y1), rgb(255, 255, 255)
+    line p->buffer, (x0, y0 + 1) - (x1, y1 + 1), rgb(0, 0, 0)
+    line p->buffer, (x0, y1) - (x1, y0), rgb(255, 255, 255)
+    line p->buffer, (x0, y1 + 1) - (x1, y0 + 1), rgb(0, 0, 0)
+  end if
 end sub
 
 sub player_render(e as GEntity ptr)
   dim as long tileSize = *(e->room->cell->map->tileInfo.tileSize)
   
-  put(e->x * tileSize, e->y * tileSize), e->player->tileset[e->player->tileId], alpha
+  put(e->x * tileSize, e->y * tileSize), e->player->tileset[e->tileId], alpha
 end sub
 
 sub player_init(e as GEntity ptr)
@@ -26,7 +28,7 @@ sub player_init(e as GEntity ptr)
   distance_field_compute(e->room->distanceField, @(e->room->entities), e->x, e->y)
   
   e->player->lastPress = timer()
-  FLAG_SET(e->room->cell->flags, CELL_VISITED)
+  FLAG_SET(e->room->cell->flags, CELL_VISITED or CELL_DISPLAYED)
 end sub
 
 function player_process(e as GEntity ptr) as boolean
@@ -125,13 +127,24 @@ function player_create(tiles as Fb.Image ptr ptr, tileId as long, x as long, y a
   var player = new GPlayer
   
   player->tileset = tiles
-  player->tileId = tileId
   
   e->name = "Player"
   e->gtype = ENTITY_PLAYER
   e->x = x
   e->y = y
+  e->tileId = tileId
   e->player = player
+  
+  with *(e->player)
+    .HP = 10
+    .maxHP = 10
+    .level = 1
+    .att = 2
+    .def = 1
+    .swordLevel = 1
+    .armorLevel = 1
+    .shieldLevel = 1
+  end with
   
   e->onInit = @player_init
   e->onDestroy = @player_destroy

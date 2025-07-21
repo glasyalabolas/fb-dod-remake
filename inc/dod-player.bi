@@ -3,8 +3,9 @@ type GPlayer
   as long XP, nextLevel
   as long level
   as long swordLevel, armorLevel, shieldLevel
-  as long potions, scrolls
-  as long tileId
+  as long att, def
+  as long potions, scrolls, keys
+  'as long tileId
   as double lastPress
   
   static as Fb.Image ptr ptr tileset
