@@ -36,7 +36,7 @@ end type
 static as Fb.KeyboardInput Game.keyboard = Fb.KeyboardInput()
 static as Fb.MouseInput Game.mouse = Fb.MouseInput()
 static as long Game.tileSize = 32           '' Tile size on the sprite sheet
-static as long Game.tileViewSize = 48       '' Tile size on the view
+static as long Game.tileViewSize = 48       '' Tile size on the view (screen)
 static as long Game.viewWidth = 17          '' Number of horizontal tiles on view
 static as long Game.viewHeight = 19         '' Number of vertical tiles on view
 static as long Game.statusPanelSize = 400   '' Size of the side bar that displays status
@@ -68,10 +68,16 @@ end sub
 #include once "inc/dod-items.bi"
 #include once "inc/dod-player.bi"
 #include once "inc/dod-monster.bi"
+#include once "inc/dod-generator.bi"
+#include once "Inc/dod-staircase.bi"
+
+declare sub map_add_entity(as Map ptr, as GEntity ptr, x as long, y as long)
 
 #include once "inc/dod-item-hooks.bi"
 #include once "inc/dod-monster-hooks.bi"
 #include once "inc/dod-player-hooks.bi"
+#include once "inc/dod-generator-hooks.bi"
+#include once "inc/dod-staircase-hooks.bi"
 
 #include once "inc/dod-dtors.bi"
 
@@ -89,10 +95,6 @@ sub map_add_entity(m as Map ptr, e as GEntity ptr, x as long, y as long)
       else
         m->entities.addAfter(m->entities.first, e)
       end if
-      
-      if (e->shownOnMap) then
-        m->cell(x, y).entity = e
-      end if
     
     case ENTITY_MONSTER
       e->monster->level = m->level
@@ -101,6 +103,10 @@ sub map_add_entity(m as Map ptr, e as GEntity ptr, x as long, y as long)
     case else
       m->entities.addLast(e)
   end select
+  
+  if (e->shownOnMap) then
+    m->cell(x, y).entity = e
+  end if
   
   if (e->onInit) then
     e->onInit(e)
@@ -131,6 +137,11 @@ sub distance_field_render(df as DistanceField ptr, ts as long)
   next
 end sub
 
+sub objects_init(tileset as Fb.Image ptr ptr)
+  GGenerator.tileset = tileset
+  GStaircase.tileset = tileset
+end sub
+
 '' First level (4x4 = 16 cells)
 '' 4 Monster generators
 '' 2 Potions
@@ -148,7 +159,7 @@ randomize()
 
 game_init()
 
-'' Create map
+'' Map parameters for level
 dim as MapParams mp
 
 with mp
@@ -160,6 +171,34 @@ with mp
   .tickInterval = 1.5
 end with
 
+dim as Fb.Image ptr male_sprites()
+dim as Fb.Image ptr female_sprites()
+dim as Fb.Image ptr tiles()
+dim as Fb.Image ptr items()
+dim as Fb.Image ptr monsters()
+dim as Fb.Image ptr objects()
+
+dim as single scale = Game.tileViewSize / Game.tileSize
+
+'' Load tileset
+dim as Tileset tileset
+
+tileset_get_tiles(tileset.floors(), "res/floor/", "floor-*.bmp", Game.tileSize, scale)
+tileset_get_tiles(tileset.walls(), "res/wall/", "wall-*.bmp", Game.tileSize, scale)
+tileset_get_tiles(tileset.wallTops(), "res/wall-top/", "walltop-*.bmp", Game.tileSize, scale)
+
+sprites_get(male_sprites(), "res/player-male.bmp", Game.tileSize, scale)
+sprites_get(female_sprites(), "res/player-female.bmp", Game.tileSize, scale)
+sprites_get(tiles(), "res/tiles-2.bmp", Game.tileSize, scale)
+sprites_get(items(), "res/items.bmp", Game.tileSize, scale)
+sprites_get(monsters(), "res/monsters.bmp", Game.tileSize, scale)
+sprites_get(objects(), "res/objects.bmp", Game.tileSize, scale)
+
+mp.tileset = @tiles(0)
+mp.tileCount = ARRAY_ELEMENTS(tiles)
+mp._tileset = @tileset
+
+'' Create map
 var m = map_create(@mp)
 
 '' Prepare minimap
@@ -175,41 +214,9 @@ with minimap
   .blinkTime = 0.5
 end with
 
-dim as Fb.Image ptr male_sprites()
-dim as Fb.Image ptr female_sprites()
-dim as Fb.Image ptr tiles()
-dim as Fb.Image ptr items()
-dim as Fb.Image ptr monsters()
-
-dim as single scale = Game.tileViewSize / Game.tileSize
-
-'' Load tileset
-dim as Tileset tileset
-
-tileset_get_tiles(tileset.floors(), "res/floor/", "floor-*.bmp", Game.tileSize, scale)
-tileset_get_tiles(tileset.walls(), "res/wall/", "wall-*.bmp", Game.tileSize, scale)
-tileset_get_tiles(tileset.wallTops(), "res/wall-top/", "walltop-*.bmp", Game.tileSize, scale)
-
-'for i as integer = 0 to ubound(tileset.floors)
-'  for j as integer = 0 to ubound(tileset.floors(i).tile)
-'    put(j * tileset.floors(i).tile(j)->width, i * tileset.floors(i).tile(j)->height), tileset.floors(i).tile(j), alpha
-'  next
-'next
-
-'sleep()
-
-sprites_get(male_sprites(), "res/player-male.bmp", Game.tileSize, scale)
-sprites_get(female_sprites(), "res/player-female.bmp", Game.tileSize, scale)
-sprites_get(tiles(), "res/tiles-2.bmp", Game.tileSize, scale)
-sprites_get(items(), "res/items.bmp", Game.tileSize, scale)
-sprites_get(monsters(), "res/monsters.bmp", Game.tileSize, scale)
-
-mp.tileset = @tiles(0)
-mp.tileCount = ARRAY_ELEMENTS(tiles)
-mp._tileset = @tileset
-
 items_init(@items(0))
 monsters_init(@monsters(0))
+objects_init(@objects(0))
 
 map_init(m, @mp)
 rooms_init(m)
@@ -220,7 +227,11 @@ map_add_entity(m, item_create(ITEM_MAP, rng(2, Game.viewWidth - 2), rng(2, Game.
 map_add_entity(m, item_create(ITEM_KEY, rng(2, Game.viewWidth - 2), rng(2, Game.viewHeight - 3)), rng(0, m->w - 1), rng(0, m->h - 1))
 
 map_add_entity(m, monster_create(MONSTER_VAMPIRE, 4, 4), 0, 0)
-'map_add_entity(m, monster_create(MONSTER_CRYSTAL_SCORPION, 8, 4), 0, 0)
+map_add_entity(m, generator_create(MONSTER_CRYSTAL_SCORPION, 8, 2, 30), 0, 0)
+
+map_add_entity(m, staircase_create(STAIRCASE_UP, 4, 4), 1, 1)
+map_add_entity(m, staircase_create(STAIRCASE_DOWN, 4, 4), 3, 3)
+
 'map_add_entity(m, monster_create(MONSTER_BLACK_ANT, 4, 8), 0, 0)
 'map_add_entity(m, monster_create(MONSTER_NINJA, 8, 8), 0, 0)
 
@@ -244,7 +255,7 @@ dim as MapRoom ptr room = player->room
 m->currentTick = timer()
 minimap_init(@minimap)
 
-map_reveal(m)
+'map_reveal(m)
 
 do
   minimap_process(@minimap)
@@ -292,26 +303,27 @@ do
       ? map_cell_door_count(m, cellX, cellY)
     end if
     
-    var cells = map_get_cells(m, 2)
+'    var cells = map_get_cells(m, 2)
     
-    var n = cells->first
+'    var n = cells->first
     
-    do while (n)
-      dim as MapCell ptr cell = n->item
+'    do while (n)
+'      dim as MapCell ptr cell = n->item
       
-      dim as long x0 = minimapPosX + cell->x * minimap.cellSize, y0 = minimapPosY + cell->y * minimap.cellSize
-      dim as long x1 = x0 + minimap.cellSize - 1, y1 = y0 + minimap.cellSize - 1
+'      dim as long x0 = minimapPosX + cell->x * minimap.cellSize, y0 = minimapPosY + cell->y * minimap.cellSize
+'      dim as long x1 = x0 + minimap.cellSize - 1, y1 = y0 + minimap.cellSize - 1
       
-      line(x0, y0) - (x1, y1), rgb(255, 255, 0), b
+'      line(x0, y0) - (x1, y1), rgb(255, 255, 0), b
       
-      n = n->forward
-    loop
+'      n = n->forward
+'    loop
     
-    delete(cells)
+'    delete(cells)
     
-'    if (tileX <> -1 andAlso tileY <> -1) then
-'      ? room_door_count(@m->cell(tileX, tileY).room)
-'    end if
+    if (tileX <> -1 andAlso tileY <> -1) then
+      '? room_door_count(@m->cell(tileX, tileY).room)
+      ? room_can_place_entity(room, tileX, tileY)
+    end if
   screenUnlock()
   
   sleep(1, 1)
@@ -325,6 +337,7 @@ sprites_destroy(female_sprites())
 sprites_destroy(tiles())
 sprites_destroy(items())
 sprites_destroy(monsters())
+sprites_destroy(objects())
 
 tileset_destroy(@tileset)
 

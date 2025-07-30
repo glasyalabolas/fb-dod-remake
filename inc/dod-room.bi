@@ -1,3 +1,7 @@
+function room_inside(r as MapRoom ptr, x as long, y as long) as boolean
+  return x >= 0 andAlso x <= r->w - 1 andAlso y >= 0 andAlso y <= r->h - 1
+end function
+
 sub paint_wall(room as MapRoom ptr, x as long, y as long)
   var tileInfo = @(room->cell->map->tileInfo)
   var tileset = room->cell->map->_tileset
@@ -189,21 +193,67 @@ sub room_remove_entity(room as MapRoom ptr, e as GEntity ptr)
   e->room = 0
 end sub
 
-'' Returns whether or not a room has any entity in the specified location
-function room_has_entity(room as MapRoom ptr, x as long, y as long) as boolean
+'' Returns the entity at x, y in the specified room, if there's any on that tile
+function room_find_entity(room as MapRoom ptr, x as long, y as long) as GEntity ptr
   var n = room->entities.first
   
   do while (n)
     dim as GEntity ptr e = n->item
     
     if (e->x = x andAlso e->y = y) then
-      return true
+      return e
     end if
     
     n = n->forward
   loop
   
-  return false
+  return 0
+end function
+
+'' Returns whether or not a room has any entity in the specified location
+function room_has_entity(room as MapRoom ptr, x as long, y as long) as boolean
+  return room_find_entity(room, x, y) <> 0
+end function
+
+'' Return whether or not an entity can be placed in the room
+'' NOTE: Be careful if the entity doesn't move, as they will overlap if you place
+''   them on top of one another
+function room_can_place_entity(room as MapRoom ptr, x as long, y as long) as boolean
+  dim as boolean isFree = true
+  
+  var e = room_find_entity(room, x, y)
+  
+  if (e) then
+    isFree = e->gtype = ENTITY_ITEM
+  end if
+  
+  return isFree andAlso FLAG_ISSET(room->tile(x, y).flags, TILE_FLOOR)
+end function
+
+'' Returns an array containing the free tiles around the specified location where entities
+'' can be placed
+sub room_can_place_entities(room as MapRoom ptr, x as long, y as long, tiles() as MapTile ptr)
+  for r as integer = -1 to 1
+    for c as integer = -1 to 1
+      if (c <> 0 orElse r <> 0) then
+        if (room_inside(room, x + c, y + r)) then
+          if (room_can_place_entity(room, x + c, y + r)) then
+            ARRAY_ADD(tiles, @(room->tile(x + c, y + r)))
+          end if
+        end if
+      end if
+    next
+  next
+end sub
+
+function room_get_rnd_tile(room as MapRoom ptr) as MapTile ptr
+  dim as MapTile ptr tile
+  
+  do
+    tile = @(room->tile(rng(1, room->w - 1), rng(2, room->h - 3)))
+  loop until (room_can_place_entity(room, tile->x, tile->y))
+  
+  return tile
 end function
 
 sub room_destroy(room as MapRoom ptr)

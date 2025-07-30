@@ -47,7 +47,7 @@ end sub
 '' Macros to deal with flags
 #define FLAG_SET(_c_, _f_) _c_ or= (_f_)
 #define FLAG_CLEAR(_c_, _f_) _c_ = _c_ and not (_f_)
-#define FLAG_ISSET(_c_, _f_) _c_ and (_f_)
+#define FLAG_ISSET(_c_, _f_) cbool(_c_ and (_f_))
 
 '' Get color components from composite color
 #define CLR_R(_c_) (culng(_c_) shr 16 and 255)

@@ -2,6 +2,9 @@ type as GEntity GEntity_
 type as GItem GItem_
 type as GPlayer GPlayer_
 type as GMonster GMonster_
+type as GGenerator GGenerator_
+type as GStaircase GStairCase_
+
 type as Minimap Minimap_
 type as MapRoom MapRoom_
 type as MapTile MapTile_
@@ -33,6 +36,7 @@ enum ENTITY_TYPE
   ENTITY_GENERATOR
   ENTITY_ITEM
   ENTITY_TRAP
+  ENTITY_STAIRCASE
 end enum
 
 enum ENTITY_FLAGS
@@ -49,6 +53,8 @@ type GEntity
   as MapRoom_ ptr room
   as boolean shownOnMap
   
+  as Fb.Image ptr ptr tileset
+  
   union
     type
       as GItem_ ptr item
@@ -58,6 +64,12 @@ type GEntity
     end type
     type
       as GMonster_ ptr monster
+    end type
+    type
+      as GGenerator_ ptr generator
+    end type
+    type
+      as GStaircase_ ptr staircase
     end type
   end union
   

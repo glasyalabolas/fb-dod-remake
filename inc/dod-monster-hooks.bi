@@ -2,10 +2,17 @@ sub monster_destroy(e as GEntity ptr)
   delete(e->monster)
 end sub
 
+sub monster_dispose(e as GEntity ptr)
+  map_remove_entity(e->room->map, e)
+  room_remove_entity(e->room, e)
+  
+  entity_destroy(e)
+end sub
+
 sub monster_render(e as GEntity ptr)
   dim as long tileSize = *(e->room->cell->map->tileInfo.tileSize)
   
-  put(e->x * tileSize, e->y * tileSize), e->monster->tileset[e->tileId], alpha
+  put(e->x * tileSize, e->y * tileSize), e->tileset[e->tileId], alpha
 end sub
 
 sub monsters_init(tileset as Fb.Image ptr ptr)
@@ -159,9 +166,6 @@ function monster_collide(e as GEntity ptr, who as GEntity ptr) as boolean
     case ENTITY_MONSTER
       debug("Collided with another dumbass")
       return true
-    
-    case ENTITY_GENERATOR
-      return true
   end select
   
   return false
@@ -180,6 +184,7 @@ function monster_create(what as MONSTER_TYPE, x as long, y as long) as GEntity p
   with GMonster.MONSTER_DEF(what)
     e->name = .name
     e->tileId = .tileId
+    e->tileset = .tileset
     
     m->HP = .HP
     m->maxHP = .maxHP

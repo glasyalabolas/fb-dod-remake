@@ -18,7 +18,7 @@ end sub
 sub player_render(e as GEntity ptr)
   dim as long tileSize = *(e->room->cell->map->tileInfo.tileSize)
   
-  put(e->x * tileSize, e->y * tileSize), e->player->tileset[e->tileId], alpha
+  put(e->x * tileSize, e->y * tileSize), e->tileset[e->tileId], alpha
 end sub
 
 sub player_init(e as GEntity ptr)
@@ -133,6 +133,7 @@ function player_create(tiles as Fb.Image ptr ptr, tileId as long, x as long, y a
   e->x = x
   e->y = y
   e->tileId = tileId
+  e->tileset = player->tileset
   e->player = player
   
   with *(e->player)

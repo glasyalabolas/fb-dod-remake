@@ -102,10 +102,6 @@ function map_inside(m as Map ptr, x as long, y as long) as boolean
   return x >= 0 andAlso x <= m->w - 1 andAlso y >= 0 andAlso y <= m->h - 1
 end function
 
-function room_inside(r as MapRoom ptr, x as long, y as long) as boolean
-  return x >= 0 andAlso x <= r->w - 1 andAlso y >= 0 andAlso y <= r->h - 1
-end function
-
 function map_create(params as MapParams ptr) as Map ptr
   var m = new Map
   
@@ -360,4 +356,16 @@ function map_get_cells overload(m as Map ptr, doors as long) as Fb.LinkedList pt
   next
   
   return cells
+end function
+
+function map_get_player(m as Map ptr) as GEntity ptr
+  if (m->entities.count > 0) then
+    dim as GEntity ptr e = m->entities.first->item
+    
+    if (e->gtype = ENTITY_PLAYER) then
+      return e
+    end if
+  end if
+  
+  return 0
 end function
